@@ -1,6 +1,6 @@
 soft/
 example/
 db/
-bin/
+bin/*
 !bin/wgs.pl
 !bin/config.txt
