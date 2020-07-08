@@ -1,6 +1,9 @@
 #File or tool path settings
 #name	path
 hg19	/data/bioit/biodata/xuxy/pipeline/wgs/db/hg19.fa
+dict	/data/bioit/biodata/xuxy/pipeline/wgs/db/hg19.dict
+dbsnp	/data/bioit/biodata/xuxy/pipeline/wgs/db/dbsnp_138.hg19.vcf
+dbindel	/data/bioit/biodata/xuxy/pipeline/wgs/db/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf
 fastqc	/data/bioit/biodata/xuxy/pipeline/wgs/soft/FastQC/fastqc
 fastp	/data/bioit/biodata/xuxy/pipeline/wgs/soft/fastp-master/fastp
 mem2	/data/bioit/biodata/xuxy/pipeline/wgs/soft/bwa-mem2-master/bwa-mem2

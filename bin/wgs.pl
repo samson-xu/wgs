@@ -31,7 +31,8 @@ my $ref = $config->{'hg19'};
 my $step = '123456789';
 my $thread = '35';
 my $fastqc_arg = '';
-my $fastp_arg = "--adapter_sequence AGATCGGAAGAG --adapter_sequence_r2 AGATCGGAAGAG -q 15 -u 40 -n 5 -l 50 -w $thread";
+my $fastp_arg = "--adapter_sequence AGATCGGAAGAG --adapter_sequence_r2 AGATCGGAAGAG -q 15 -u 40 -n 5 -l 50 -w $thread -d 3";
+my $clean_fastq_split = 3;
 my $align_way = 'mem2';
 my $align_arg = '';
 
@@ -78,6 +79,7 @@ $indent -fastqc_help                 Print fastqc help information
 $indent -fastqc_arg                  Fastqc argument setting, default "$fastqc_arg"
 $indent -fastp_help                  Print fastp help information
 $indent -fastp_arg                   Fastp argument setting, default "$fastp_arg"
+$indent -clean_fastq_split           Specifies how many parts the output fastq is divided into, default "$clean_fastq_split"
 $parameter_separator Align $parameter_separator 
 $indent --align_way                  Select align algorithm, 'backtrack', 'mem' or 'mem2', default "$align_way"
 $indent --backtrack_help             Print BWA-backtrack help information
@@ -108,6 +110,7 @@ GetOptions(
 	"fastqc_arg=s" => \$fastqc_arg,
 	"fastp_help" => \$fastp_help,
 	"fastp_arg=s" => \$fastp_arg,
+	"clean_fastq_split=i" => \$clean_fastq_split,
 	"align_way=s" => \$align_way, 
 	"backtrack_help" => \$backtrack_help,
 	"mem_help" => \$mem_help,
@@ -115,12 +118,13 @@ GetOptions(
 );
 
 die $guide if ((@ARGV == 0 || defined $help) && !defined $fastqc_help && !defined $fastp_help && !defined $backtrack_help && !defined $mem_help && !defined $mem2_help);
-
 die `$config->{fastqc} -h` if (defined $fastqc_help);
 die `$config->{fastp}` if (defined $fastp_help);
 die `$config->{bwa} aln` if (defined $backtrack_help);
 die `$config->{bwa} mem` if (defined $mem_help);
 die `$config->{mem2} mem` if (defined $mem2_help);
+
+$fastp_arg .= " --split $clean_fastq_split" if ($clean_fastq_split and $clean_fastq_split >=2);
 
 # Main
 my $projectDir = "$workDir/$project";
@@ -160,16 +164,16 @@ if ($fastq_label) {
 			my $filterDir = "$projectDir/$sampleId/01.filter";
 			my $filter_shell = "$config->{fastp} -i $fastq->[0] -o $filterDir/$sampleId.clean.1.fq.gz -I $fastq->[1] -O $filterDir/$sampleId.clean.2.fq.gz $fastp_arg -j $filterDir/$sampleId.fastq.json -h $filterDir/$sampleId.fastq.html -R '$sampleId fastq report'";
 			write_shell($filter_shell, "$filterDir/$sampleId.filter.sh");
-			@{$sampleInfo{$sampleId}{'clean'}} = ("$filterDir/$sampleId.clean.1.fq.gz", "$filterDir/$sampleId.clean.2.fq.gz");
+			@{$sampleInfo{$sampleId}{'clean'}} = ("$filterDir/$sampleId.clean.1.fq.gz", "$filterDir/$sampleId.clean.2.fq.gz", $clean_fastq_split);
 		}
 		# Alignment
 		if ($step =~ /3/) {
 			my $alignDir = "$projectDir/$sampleId/02.align";
-			@{$sampleInfo{$sampleId}{'clean'}} = ($fastq->[0], $fastq->[1]) unless ($sampleInfo{$sampleId}{'clean'});
+			@{$sampleInfo{$sampleId}{'clean'}} = ($fastq->[0], $fastq->[1], 1) unless ($sampleInfo{$sampleId}{'clean'});
 			my $align_program = $config->{'mem2'};
 			$align_program = $config->{'bwa'} if ($align_way ne 'mem2');
-			my $align_shell = reads_align($align_program, $config->{'samtools'}, $config->{'gatk'}, $thread, $sampleInfo{$sampleId}{'clean'}, $ref, $align_way, $align_arg, $alignDir);
-			write_shell($align_shell, "$alignDir/$sampleId.align.sh");
+			my $align_shell = reads_align($align_program, $config->{'samtools'}, $config->{'gatk'}, $thread, $sampleInfo{$sampleId}{'clean'},
+                              $ref, $config->{'dict'}, $config->{'dbsnp'}, $config->{'dbindel'}, $align_way, $align_arg, $alignDir);
 			$sampleInfo{$sampleId}{'align'} = "$alignDir/$sampleId.final.bam"; 
 		}	
 	}
