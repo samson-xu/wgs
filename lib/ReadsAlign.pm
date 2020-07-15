@@ -206,7 +206,7 @@ sh $outDir/$prefix.mark.sh >$outDir/$prefix.mark.sh.o 2>$outDir/$prefix.mark.sh.
 sh $outDir/$prefix.bqsr.sh >$outDir/$prefix.bqsr.sh.o 2>$outDir/$prefix.bqsr.sh.e 
 sh $outDir/$prefix.apply.sh >$outDir/$prefix.apply.sh.o 2>$outDir/$prefix.apply.sh.e
 SHELL
-	write_shell($shell, "$outDir/$prefix.align.main.sh");
+	write_shell($shell, "$outDir/$prefix.align.sh");
 }
 
 1;

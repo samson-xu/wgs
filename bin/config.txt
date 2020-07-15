@@ -2,8 +2,12 @@
 #name	path
 hg19	/data/bioit/biodata/xuxy/pipeline/wgs/db/hg19.fa
 dict	/data/bioit/biodata/xuxy/pipeline/wgs/db/hg19.dict
-dbsnp	/data/bioit/biodata/xuxy/pipeline/wgs/db/dbsnp_138.hg19.vcf
-dbindel	/data/bioit/biodata/xuxy/pipeline/wgs/db/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf
+dbsnp	/data/bioit/biodata/xuxy/pipeline/wgs/db/dbsnp_138.hg19.vcf.gz
+mills	/data/bioit/biodata/xuxy/pipeline/wgs/db/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf.gz
+axiom	/data/bioit/biodata/xuxy/pipeline/wgs/db/Axiom_Exome_Plus.genotypes.all_populations.poly.vcf.gz
+hapmap	/data/bioit/biodata/xuxy/pipeline/wgs/db/hapmap_3.3.hg19.sites.vcf.gz
+omni	/data/bioit/biodata/xuxy/pipeline/wgs/db/1000G_omni2.5.hg19.sites.vcf.gz
+thousand	/data/bioit/biodata/xuxy/pipeline/wgs/db/1000G_phase1.snps.high_confidence.hg19.sites.vcf.gz
 fastqc	/data/bioit/biodata/xuxy/pipeline/wgs/soft/FastQC/fastqc
 fastp	/data/bioit/biodata/xuxy/pipeline/wgs/soft/fastp-master/fastp
 mem2	/data/bioit/biodata/xuxy/pipeline/wgs/soft/bwa-mem2-master/bwa-mem2

@@ -18,12 +18,13 @@ use ConfigParse;
 use SampleStat;
 use WriteShell;
 use ReadsAlign;
+use VariantCall;
 
 # File or tool path check
 my $config = path_check("$Bin/config.txt");
 
 # Global variable
-my ($help, $stat, $target_region, $fastqc_help, $fastp_help, $backtrack_help, $mem_help, $mem2_help);
+my ($help, $stat, $target_region, $fastqc_help, $fastp_help, $backtrack_help, $mem_help, $mem2_help, %wgs_shell);
 my $project = strftime("%Y%m%d",localtime());
 my $interval_padding = 200;
 my $workDir = $ENV{'PWD'};
@@ -149,6 +150,8 @@ close SF;
 #print Dumper \%sampleInfo;
 my $sample_total = keys %sampleInfo;
 
+my ($step1_shell);
+
 if ($fastq_label) {
 	foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 		# Fastq quality control
@@ -158,12 +161,16 @@ if ($fastq_label) {
 			my $fastqc_shell = "$config->{fastqc} -t $thread -o $fastqcDir $fastqc_arg $fastq->[0] $fastq->[1]\n";
 			$fastqc_shell .= "rm $fastqcDir/*.zip";
 			write_shell($fastqc_shell, "$fastqcDir/$sampleId.fastqc.sh");
+			$step1_shell .= "sh $fastqcDir/$sampleId.fastqc.sh >$fastqcDir/$sampleId.fastqc.sh.o 2>$fastqcDir/$sampleId.fastqc.sh.e";
 		}
 		# Fastq filter
 		if ($step =~ /2/) {
 			my $filterDir = "$projectDir/$sampleId/01.filter";
 			my $filter_shell = "$config->{fastp} -i $fastq->[0] -o $filterDir/$sampleId.clean.1.fq.gz -I $fastq->[1] -O $filterDir/$sampleId.clean.2.fq.gz $fastp_arg -j $filterDir/$sampleId.fastq.json -h $filterDir/$sampleId.fastq.html -R '$sampleId fastq report'";
 			write_shell($filter_shell, "$filterDir/$sampleId.filter.sh");
+			$wgs_shell{$sampleId} .= $step1_shell . " &\n"if ($step =~ /1/);
+			$wgs_shell{$sampleId} .= "sh $filterDir/$sampleId.filter.sh >$filterDir/$sampleId.filter.sh.o 2>$filterDir/$sampleId.filter.sh.e &\n";
+			$wgs_shell{$sampleId} .= "\nwait\n\n";
 			@{$sampleInfo{$sampleId}{'clean'}} = ("$filterDir/$sampleId.clean.1.fq.gz", "$filterDir/$sampleId.clean.2.fq.gz", $clean_fastq_split);
 		}
 		# Alignment
@@ -172,41 +179,50 @@ if ($fastq_label) {
 			@{$sampleInfo{$sampleId}{'clean'}} = ($fastq->[0], $fastq->[1], 1) unless ($sampleInfo{$sampleId}{'clean'});
 			my $align_program = $config->{'mem2'};
 			$align_program = $config->{'bwa'} if ($align_way ne 'mem2');
-			my $align_shell = reads_align($align_program, $config->{'samtools'}, $config->{'gatk'}, $thread, $sampleInfo{$sampleId}{'clean'},
-                              $ref, $config->{'dict'}, $config->{'dbsnp'}, $config->{'dbindel'}, $align_way, $align_arg, $alignDir);
+			reads_align($align_program, $config->{'samtools'}, $config->{'gatk'}, $thread, $sampleInfo{$sampleId}{'clean'},
+                        $ref, $config->{'dict'}, $config->{'dbsnp'}, $config->{'mills'}, $align_way, $align_arg, $alignDir);
+			$wgs_shell{$sampleId} .= "sh $alignDir/$sampleId.align.sh >$alignDir/$sampleId.align.sh.o 2>$alignDir/$sampleId.align.sh.e\n";
 			$sampleInfo{$sampleId}{'align'} = "$alignDir/$sampleId.final.bam"; 
 		}	
 	}
-} else {
-	print STDERR "Because your input is alignment result, the program will automatically skip the first few steps!\n" if ($step =~ /1|2|3/);	
-	foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
-		$sampleInfo{$sampleId}{'align'} = "$projectDir/$sampleId/02.align/$sampleId.final.bam" unless ($sampleInfo{$sampleId}{'align'});
-		# SNP/InDel detection
-		if ($step =~ /4/) {
-
-		}
-		# CNV detection
-		if ($step =~ /5/) {
-
-		}
-		# Fusion gene detection
-		if ($step =~ /6/) {
-
-		}
-		# SV detection
-		if ($step =~ /7/) {
-
-		}
-		# Mitochondrial gene mutation detection
-		if ($step =~ /8/) {
-
-		}
-		# Statistics of variation detection results
-		if ($step =~ /9/) {
-
-		}
-	}	
 }
 
+print STDERR "Because your input is alignment result, the program will automatically skip the first few steps!\n" if (!$fastq_label and $step =~ /1|2|3/);	
+foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
+	$sampleInfo{$sampleId}{'align'} = "$projectDir/$sampleId/02.align/$sampleId.final.bam" unless ($sampleInfo{$sampleId}{'align'});
+	# SNP/InDel detection
+	if ($step =~ /4/) {
+		my $callDir = "$projectDir/$sampleId/03.variant";
+		call_variant($config->{'gatk'}, $sampleInfo{$sampleId}{'align'}, $ref, $config->{'dict'}, $config->{'dbsnp'}, $config->{'mills'}, $config->{'axiom'}, $config->{'hapmap'}, $config->{'omni'}, $config->{'thousand'}, $callDir, $target_region);
+		$wgs_shell{$sampleId} .= "sh $callDir/$sampleId.variant.sh >$callDir/$sampleId.variant.sh.o 2>$callDir/$sampleId.variant.sh.e &\n";
+		$sampleInfo{$sampleId}{'variant'} = "$callDir/$sampleId.filter.vcf.gz"; 
+	}
+	# CNV detection
+	if ($step =~ /5/) {
+
+	}
+	# Fusion gene detection
+	if ($step =~ /6/) {
+
+	}
+	# SV detection
+	if ($step =~ /7/) {
+
+	}
+	# Mitochondrial gene mutation detection
+	if ($step =~ /8/) {
+
+	}
+	# Statistics of variation detection results
+	if ($step =~ /9/) {
+
+	}
+}	
+
+
+foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
+	$wgs_shell{$sampleId} .= "\nwait\n\n";
+	write_shell($wgs_shell{$sampleId}, "$projectDir/$sampleId/$sampleId.sh");
+}
 
 stat_log($sample_total, $Bin) if (defined $stat);
