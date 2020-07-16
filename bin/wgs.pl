@@ -24,9 +24,9 @@ use VariantCall;
 my $config = path_check("$Bin/config.txt");
 
 # Global variable
-my ($help, $stat, $target_region, $fastqc_help, $fastp_help, $backtrack_help, $mem_help, $mem2_help, %wgs_shell);
+my ($help, $stat, $target_region, $fastqc_help, $fastp_help, $backtrack_help, $mem_help, $mem2_help, %wgs_shell, $main_shell);
 my $project = strftime("%Y%m%d",localtime());
-my $interval_padding = 200;
+my $interval_padding = 0;
 my $workDir = $ENV{'PWD'};
 my $ref = $config->{'hg19'};
 my $step = '123456789';
@@ -193,7 +193,7 @@ foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 	# SNP/InDel detection
 	if ($step =~ /4/) {
 		my $callDir = "$projectDir/$sampleId/03.variant";
-		call_variant($config->{'gatk'}, $sampleInfo{$sampleId}{'align'}, $ref, $config->{'dict'}, $config->{'dbsnp'}, $config->{'mills'}, $config->{'axiom'}, $config->{'hapmap'}, $config->{'omni'}, $config->{'thousand'}, $callDir, $target_region);
+		call_variant($config->{'gatk'}, $sampleInfo{$sampleId}{'align'}, $ref, $config->{'dict'}, $config->{'dbsnp'}, $config->{'mills'}, $config->{'axiom'}, $config->{'hapmap'}, $config->{'omni'}, $config->{'thousand'}, $callDir, $target_region, $interval_padding);
 		$wgs_shell{$sampleId} .= "sh $callDir/$sampleId.variant.sh >$callDir/$sampleId.variant.sh.o 2>$callDir/$sampleId.variant.sh.e &\n";
 		$sampleInfo{$sampleId}{'variant'} = "$callDir/$sampleId.filter.vcf.gz"; 
 	}
@@ -219,10 +219,14 @@ foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 	}
 }	
 
+$main_shell = "# Run wgs pipeline for all samples\n";
 
 foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 	$wgs_shell{$sampleId} .= "\nwait\n\n";
 	write_shell($wgs_shell{$sampleId}, "$projectDir/$sampleId/$sampleId.sh");
+	$main_shell .= "sh $projectDir/$sampleId/$sampleId.sh >$projectDir/$sampleId/$sampleId.sh.o 2>$projectDir/$sampleId/$sampleId.sh.e\n";
 }
+
+write_shell($main_shell, "$projectDir/main.sh");
 
 stat_log($sample_total, $Bin) if (defined $stat);

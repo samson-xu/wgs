@@ -21,22 +21,33 @@ sub call_variant {
 	my $thousand = shift;
 	my $outDir = shift;
 	my $target = shift;
+	my $interval_padding = shift;
+	if ($target) {
+		$interval_padding = "-ip $interval_padding ";
+	} else {
+		$interval_padding = "";
+	}
 	my $prefix = basename($bam);
 	$prefix =~ s/.final.bam$//;
 	my ($gvcf_shell, $shell);	
 	$gvcf_shell = "# HaplotypeCaller per-sample in GVCF mode\n";
-	my @intervals = @{scatter_chr($dict)};
+	my @intervals;
+	if ($target) {
+		@intervals = @{scatter_chr($target, "$outDir/split_bed")};
+	} else {
+		@intervals = @{scatter_chr($dict)};
+	}
 	my ($groups_gvcf, $group_gvcf_file);
 	foreach my $interval (@intervals) {
 		my @arr = split /\s+/, $interval;
-		my $group = $arr[1];
+		my $group = basename($arr[1]);
 		$groups_gvcf .= "--INPUT $outDir/$prefix.$group.g.vcf.gz \\\n";
 		$group_gvcf_file .= "$outDir/$prefix.$group.g.vcf.gz* ";
 		$gvcf_shell.=<<HaplotypeCaller;
 $gatk HaplotypeCaller \\
 -R $ref \\
 -I $bam \\
-$interval \\
+$interval $interval_padding\\
 -O $outDir/$prefix.$group.g.vcf.gz \\
 -G AS_StandardAnnotation \\
 -GQB 10 -GQB 20 -GQB 30 -GQB 40 -GQB 50 -GQB 60 -GQB 70 -GQB 80 -GQB 90 \\
@@ -57,7 +68,7 @@ MergeGVCFs
 	write_shell($gvcf_shell, "$outDir/$prefix.gvcf.sh");	
 	system("echo '$prefix\t$outDir/$prefix.g.vcf.gz' > $outDir/$prefix.gvcf.txt") == 0 || die $!;
 	my $sample_gvcf_list_file = "$outDir/$prefix.gvcf.txt";
-	my $output_vcf = genotype_gvcf($gatk, $sample_gvcf_list_file, \@intervals, $outDir, $prefix, $ref, $dbsnp);
+	my $output_vcf = genotype_gvcf($gatk, $sample_gvcf_list_file, \@intervals, $interval_padding, $outDir, $prefix, $ref, $dbsnp);
 	vcf_filter($gatk, $output_vcf, $outDir, $prefix, $target, $dbsnp, $mills, $axiom, $hapmap, $omni, $thousand);
 	$shell=<<SHELL;
 # Pipeline for SNP/InDel detect
@@ -74,6 +85,7 @@ sub genotype_gvcf {
 	my $gatk = shift;
 	my $input = shift;
 	my $intervals_ref = shift;
+	my $interval_padding = shift;
 	my $outDir = shift;
 	my $prefix = shift;
 	my $ref = shift;
@@ -81,13 +93,13 @@ sub genotype_gvcf {
         my $import_shell = "# Import sample GVCFs\n";
         foreach my $interval (@{$intervals_ref}) {
                 my @arr = split /\s+/, $interval;
-                my $group = $arr[1];
+                my $group = basename($arr[1]);
 		$import_shell.=<<ImportGVCFs;		
 $gatk --java-options -Xms8g \\
 GenomicsDBImport \\
 --genomicsdb-workspace-path $outDir/genomicsdb.$group \\
 --batch-size 0 \\
-$interval \\
+$interval $interval_padding \\
 --sample-name-map $input \\
 --reader-threads 5 \\
 --merge-input-intervals \\
@@ -101,7 +113,7 @@ ImportGVCFs
         my ($groups_genotype, $group_genotype_file);
         foreach my $interval_genotype (@{$intervals_ref}) {
                 my @arr = split /\s+/, $interval_genotype;
-                my $group = $arr[1];
+                my $group = basename($arr[1]);
                 $groups_genotype .= "-I $outDir/$prefix.$group.vcf.gz \\\n";
                 $group_genotype_file .= "$outDir/$prefix.$group.vcf.gz* ";
 		$genotype_shell.=<<GenotypeGVCFs;
@@ -110,10 +122,10 @@ GenotypeGVCFs \\
 -R $ref \\
 -O $outDir/$prefix.$group.vcf.gz \\
 -D $dbsnp \\
--G StandardAnnotation -G AS_StandardAnnotation \\
+-G AS_StandardAnnotation \\
 --only-output-calls-starting-in-intervals \\
 -V gendb://$outDir/genomicsdb.$group \\
-$interval_genotype \\
+$interval_genotype $interval_padding\\
 --merge-input-intervals & 
 
 GenotypeGVCFs

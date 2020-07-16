@@ -40,7 +40,40 @@ sub scatter_chr {
 			push @intervals, $tmp_interval if ($i == @chrs - 1);
 		}
 	} else {
-
+		my %chr_size;
+		my @chrs = map {"chr$_"} (1..22, 'X', 'Y');
+		my %chr_region;
+		open F, $file or die $!;
+		while (<F>) {
+			next if (/#/);	
+			next if (/^\s*$/);
+			chomp;
+			my @arr = split /\s+/;
+			$chr_size{$arr[0]} += $arr[2] - $arr[1];
+			$chr_region{$arr[0]} .= "$_\n";
+		}
+		close F;
+		system("mkdir -p $outDir") == 0 || die $!;
+		foreach my $chr (@chrs) {
+			open OUT, ">$outDir/$chr.bed" or die $!; 
+			print OUT $chr_region{$chr};
+			close OUT;
+		}
+		my @sort_chr = sort {$chr_size{$b} <=> $chr_size{$a}} keys %chr_size;
+		my $longest_sequence = $chr_size{$sort_chr[0]};
+		my $tmp_size = 0;
+		my $tmp_interval = '';
+		for(my $i=0; $i<@chrs; $i++) {
+			if ($chr_size{$chrs[$i]} + $tmp_size <= $longest_sequence) {
+				$tmp_size += $chr_size{$chrs[$i]};
+				$tmp_interval .= "-L $outDir/$chrs[$i].bed ";
+			} else {
+				push @intervals, $tmp_interval;
+				$tmp_interval = "-L $outDir/$chrs[$i].bed ";
+				$tmp_size = $chr_size{$chrs[$i]};
+			}
+			push @intervals, $tmp_interval if ($i == @chrs - 1);
+		}
 	}
 	return \@intervals;
 }
