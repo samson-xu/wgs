@@ -1,4 +1,6 @@
 #File or tool path settings
+#BamQc.pm require Parallel::ForkManager module
+#insert_size_evaluate.pl require Statistics::Basic module
 #name	path
 hg19	/data/bioit/biodata/xuxy/pipeline/wgs/db/hg19.fa
 dict	/data/bioit/biodata/xuxy/pipeline/wgs/db/hg19.dict
@@ -14,3 +16,4 @@ mem2	/data/bioit/biodata/xuxy/pipeline/wgs/soft/bwa-mem2-master/bwa-mem2
 bwa	/data/bioit/biodata/xuxy/pipeline/wgs/soft/bwa-0.7.17/bwa
 samtools	/data/bioit/biodata/xuxy/pipeline/wgs/soft/samtools-1.10-install/bin/samtools
 gatk	/data/bioit/biodata/xuxy/pipeline/wgs/soft/gatk-4.1.8.0/gatk
+bedtools	/data/bioit/biodata/xuxy/pipeline/wgs/soft/bedtools2-2.29.2/bin/bedtools

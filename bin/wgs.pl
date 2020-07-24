@@ -24,15 +24,16 @@ use VariantCall;
 my $config = path_check("$Bin/config.txt");
 
 # Global variable
-my ($help, $stat, $target_region, $fastqc_help, $fastp_help, $backtrack_help, $mem_help, $mem2_help, %wgs_shell, $main_shell);
+my ($help, $stat, $fastqc_help, $fastp_help, $backtrack_help, $mem_help, $mem2_help, %wgs_shell, $main_shell);
 my $project = strftime("%Y%m%d",localtime());
+my $target_region = '';
 my $interval_padding = 0;
 my $workDir = $ENV{'PWD'};
 my $ref = $config->{'hg19'};
 my $step = '123456789';
 my $thread = '35';
 my $fastqc_arg = '';
-my $fastp_arg = "--adapter_sequence AGATCGGAAGAG --adapter_sequence_r2 AGATCGGAAGAG -q 15 -u 40 -n 5 -l 50 -w $thread -d 3";
+my $fastp_arg = "--detect_adapter_for_pe -q 15 -u 40 -n 5 -l 50 -w $thread -d 3";
 my $clean_fastq_split = 3;
 my $align_way = 'mem2';
 my $align_arg = '';
@@ -161,7 +162,7 @@ if ($fastq_label) {
 			my $fastqc_shell = "$config->{fastqc} -t $thread -o $fastqcDir $fastqc_arg $fastq->[0] $fastq->[1]\n";
 			$fastqc_shell .= "rm $fastqcDir/*.zip";
 			write_shell($fastqc_shell, "$fastqcDir/$sampleId.fastqc.sh");
-			$step1_shell .= "sh $fastqcDir/$sampleId.fastqc.sh >$fastqcDir/$sampleId.fastqc.sh.o 2>$fastqcDir/$sampleId.fastqc.sh.e";
+			$step1_shell = "sh $fastqcDir/$sampleId.fastqc.sh >$fastqcDir/$sampleId.fastqc.sh.o 2>$fastqcDir/$sampleId.fastqc.sh.e";
 		}
 		# Fastq filter
 		if ($step =~ /2/) {
@@ -195,6 +196,7 @@ foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 		my $callDir = "$projectDir/$sampleId/03.variant";
 		call_variant($config->{'gatk'}, $sampleInfo{$sampleId}{'align'}, $ref, $config->{'dict'}, $config->{'dbsnp'}, $config->{'mills'}, $config->{'axiom'}, $config->{'hapmap'}, $config->{'omni'}, $config->{'thousand'}, $callDir, $target_region, $interval_padding);
 		$wgs_shell{$sampleId} .= "sh $callDir/$sampleId.variant.sh >$callDir/$sampleId.variant.sh.o 2>$callDir/$sampleId.variant.sh.e &\n";
+		$wgs_shell{$sampleId} .= "perl -I '$Bin/../lib' -MBamQc -e \"bam_qc('$sampleInfo{$sampleId}{'align'}', '$config->{'samtools'}', '$target_region', '$config->{'bedtools'}', $thread)\" &\n";
 		$sampleInfo{$sampleId}{'variant'} = "$callDir/$sampleId.filter.vcf.gz"; 
 	}
 	# CNV detection
