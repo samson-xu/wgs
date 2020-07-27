@@ -137,8 +137,6 @@ Bases_number\t$bam_info{'bases'}
 Mapping_rate\t$map_rate%
 Duplication_rate\t$dup_rate%
 Genome_bases\t$depth_info{$sampleId}{'bases'}
-Sequencing_bases_on_genome\t$depth_info{$sampleId}{'sequences'}
-Fraction_sequencing_bases_on_genome\t$genome_sequence_rate%
 Average_sequencing_depth_on_genome\t$ave_genome_depth
 Base_covered_on_genome\t$depth_info{$sampleId}{'cov'}
 Coverage_genome\t$genome_cov_rate%
@@ -273,10 +271,12 @@ sub chr_stat {
 		if ($chr eq 'unmapped') {
 			next unless ($arr[2] eq '*');
 		}
-		$reads++;
-		$bases += length($arr[9]);
-		$map++ unless ($arr[1] & 4);
-		$dup++ if ($arr[1] & 1024);
+		unless ($arr[1] & 2048) {
+			$reads++;
+			$bases += length($arr[9]);
+			$map++ unless ($arr[1] & 4);
+			$dup++ if ($arr[1] & 1024);
+		}
 	}
 	close BAM;	
 	open OUT, ">>$outDir/$sampleId.chr.stat.txt" or die $!;

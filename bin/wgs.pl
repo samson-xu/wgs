@@ -168,6 +168,7 @@ if ($fastq_label) {
 		if ($step =~ /2/) {
 			my $filterDir = "$projectDir/$sampleId/01.filter";
 			my $filter_shell = "$config->{fastp} -i $fastq->[0] -o $filterDir/$sampleId.clean.1.fq.gz -I $fastq->[1] -O $filterDir/$sampleId.clean.2.fq.gz $fastp_arg -j $filterDir/$sampleId.fastq.json -h $filterDir/$sampleId.fastq.html -R '$sampleId fastq report'";
+			$filter_shell .= "perl -I '$Bin/../lib' -MReadsStat -e \"reads_stat('$filterDir/$sampleId.fastq.json')\"\n";
 			write_shell($filter_shell, "$filterDir/$sampleId.filter.sh");
 			$wgs_shell{$sampleId} .= $step1_shell . " &\n"if ($step =~ /1/);
 			$wgs_shell{$sampleId} .= "sh $filterDir/$sampleId.filter.sh >$filterDir/$sampleId.filter.sh.o 2>$filterDir/$sampleId.filter.sh.e &\n";

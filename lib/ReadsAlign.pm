@@ -63,7 +63,8 @@ $gatk FastqToSam \\
 -O $outDir/$out_pre.unmapped.bam \\
 -SM $prefix \\
 -PL ILLUMINA \\
--RG $prefix
+-RG $prefix \\
+--TMP_DIR $outDir
 
 FastqToSam
 		$merge.=<<MergeBam;
@@ -88,7 +89,7 @@ $gatk MergeBamAlignment \\
 --ALIGNER_PROPER_PAIR_FLAGS true \\
 --UNMAP_CONTAMINANT_READS true
 
-rm $outDir/$out_pre.bam $outDir/$out_pre.unmapped.bam
+#rm $outDir/$out_pre.bam $outDir/$out_pre.unmapped.bam
 MergeBam
 	write_shell($merge, "$outDir/$out_pre.merge.sh");
 	
@@ -109,7 +110,7 @@ $markdup_input--OUTPUT $outDir/$prefix.markdup.bam \\
 --ASSUME_SORT_ORDER "queryname" \\
 --CREATE_MD5_FILE false
 
-rm $outDir/*.merge.bam 
+#rm $outDir/*.merge.bam 
 
 MarkDuplicates
 
@@ -129,7 +130,7 @@ $gatk SetNmMdAndUqTags \\
 --CREATE_MD5_FILE true \\
 --REFERENCE_SEQUENCE $ref
 
-rm $outDir/$prefix.markdup.bam $outDir/$prefix.metrics
+#rm $outDir/$prefix.markdup.bam $outDir/$prefix.metrics
 
 SortSam
 	write_shell($mark, "$outDir/$prefix.mark.sh");		
