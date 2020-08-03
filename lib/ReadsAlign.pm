@@ -87,9 +87,10 @@ $gatk MergeBamAlignment \\
 --PRIMARY_ALIGNMENT_STRATEGY MostDistant \\
 --UNMAPPED_READ_STRATEGY COPY_TO_TAG \\
 --ALIGNER_PROPER_PAIR_FLAGS true \\
---UNMAP_CONTAMINANT_READS true
+--UNMAP_CONTAMINANT_READS true \\
+--TMP_DIR $outDir
 
-#rm $outDir/$out_pre.bam $outDir/$out_pre.unmapped.bam
+rm $outDir/$out_pre.bam $outDir/$out_pre.unmapped.bam
 MergeBam
 	write_shell($merge, "$outDir/$out_pre.merge.sh");
 	
@@ -108,9 +109,10 @@ $markdup_input--OUTPUT $outDir/$prefix.markdup.bam \\
 --VALIDATION_STRINGENCY SILENT \\
 --OPTICAL_DUPLICATE_PIXEL_DISTANCE 2500 \\
 --ASSUME_SORT_ORDER "queryname" \\
---CREATE_MD5_FILE false
+--CREATE_MD5_FILE false \\
+--TMP_DIR $outDir
 
-#rm $outDir/*.merge.bam 
+rm $outDir/*.merge.bam 
 
 MarkDuplicates
 
@@ -122,6 +124,7 @@ $gatk SortSam \\
 --SORT_ORDER "coordinate" \\
 --CREATE_INDEX false \\
 --CREATE_MD5_FILE false \\
+--TMP_DIR $outDir \\
 | \\
 $gatk SetNmMdAndUqTags \\
 --INPUT /dev/stdin \\
@@ -130,7 +133,7 @@ $gatk SetNmMdAndUqTags \\
 --CREATE_MD5_FILE true \\
 --REFERENCE_SEQUENCE $ref
 
-#rm $outDir/$prefix.markdup.bam $outDir/$prefix.metrics
+rm $outDir/$prefix.markdup.bam $outDir/$prefix.metrics
 
 SortSam
 	write_shell($mark, "$outDir/$prefix.mark.sh");		

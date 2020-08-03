@@ -72,44 +72,44 @@ FLANK
 		print "Finished all chrs depth stat!\n";
 		%depth_info = %{summary_depth("$outDir/$sampleId.chr.depth.txt")};
 		system("rm -rf $outDir/flank.bed $outDir/split_region") == 0 || die $!;
-		my $map_rate = sprintf("%.2f", $bam_info{'map'}/$bam_info{'reads'}*100);
-		my $dup_rate = sprintf("%.2f", $bam_info{'dup'}/$bam_info{'reads'}*100);
-		my $target_sequence_rate = sprintf("%.2f", $depth_info{'target'}{'sequences'}/$bam_info{'bases'}*100); 
-		my $flank_sequence_rate = sprintf("%.2f", $depth_info{'flank'}{'sequences'}/$bam_info{'bases'}*100); 
+		my $map_rate = sprintf("%.2f\%", $bam_info{'map'}/$bam_info{'reads'}*100);
+		my $dup_rate = sprintf("%.2f\%", $bam_info{'dup'}/$bam_info{'reads'}*100);
+		my $target_sequence_rate = sprintf("%.2f\%", $depth_info{'target'}{'sequences'}/$bam_info{'bases'}*100); 
+		my $flank_sequence_rate = sprintf("%.2f\%", $depth_info{'flank'}{'sequences'}/$bam_info{'bases'}*100); 
 		my $ave_target_depth = sprintf("%.2f", $depth_info{'target'}{'sequences'}/$depth_info{'target'}{'bases'});
 		my $ave_flank_depth = sprintf("%.2f", $depth_info{'flank'}{'sequences'}/$depth_info{'flank'}{'bases'});
-		my $target_cov_rate = sprintf("%.2f", $depth_info{'target'}{'cov'}/$depth_info{'target'}{'bases'}*100); 
-		my $flank_cov_rate = sprintf("%.2f", $depth_info{'flank'}{'cov'}/$depth_info{'flank'}{'bases'}*100); 
-		my $target_10x_rate = sprintf("%.2f", $depth_info{'target'}{'x10'}/$depth_info{'target'}{'bases'}*100);
-		my $target_20x_rate = sprintf("%.2f", $depth_info{'target'}{'x20'}/$depth_info{'target'}{'bases'}*100);
-		my $target_30x_rate = sprintf("%.2f", $depth_info{'target'}{'x30'}/$depth_info{'target'}{'bases'}*100);
-		my $flank_10x_rate = sprintf("%.2f", $depth_info{'flank'}{'x10'}/$depth_info{'flank'}{'bases'}*100);
-		my $flank_20x_rate = sprintf("%.2f", $depth_info{'flank'}{'x20'}/$depth_info{'flank'}{'bases'}*100);
-		my $flank_30x_rate = sprintf("%.2f", $depth_info{'flank'}{'x30'}/$depth_info{'flank'}{'bases'}*100);
+		my $target_cov_rate = sprintf("%.2f\%", $depth_info{'target'}{'cov'}/$depth_info{'target'}{'bases'}*100); 
+		my $flank_cov_rate = sprintf("%.2f\%", $depth_info{'flank'}{'cov'}/$depth_info{'flank'}{'bases'}*100); 
+		my $target_10x_rate = sprintf("%.2f\%", $depth_info{'target'}{'x10'}/$depth_info{'target'}{'bases'}*100);
+		my $target_20x_rate = sprintf("%.2f\%", $depth_info{'target'}{'x20'}/$depth_info{'target'}{'bases'}*100);
+		my $target_30x_rate = sprintf("%.2f\%", $depth_info{'target'}{'x30'}/$depth_info{'target'}{'bases'}*100);
+		my $flank_10x_rate = sprintf("%.2f\%", $depth_info{'flank'}{'x10'}/$depth_info{'flank'}{'bases'}*100);
+		my $flank_20x_rate = sprintf("%.2f\%", $depth_info{'flank'}{'x20'}/$depth_info{'flank'}{'bases'}*100);
+		my $flank_30x_rate = sprintf("%.2f\%", $depth_info{'flank'}{'x30'}/$depth_info{'flank'}{'bases'}*100);
 		$output=<<OUTPUT;
 Sample\t$sampleId
 Reads_number\t$bam_info{'reads'}
 Bases_number\t$bam_info{'bases'}
-Mapping_rate\t$map_rate%
-Duplication_rate\t$dup_rate%
+Mapping_rate\t$map_rate
+Duplication_rate\t$dup_rate
 Target_bases\t$depth_info{'target'}{'bases'}
 Flank_bases\t$depth_info{'flank'}{'bases'}
 Sequencing_bases_on_target\t$depth_info{'target'}{'sequences'}
 Sequencing_bases_on_flank\t$depth_info{'flank'}{'sequences'}
-Fraction_sequencing_bases_on_target\t$target_sequence_rate%
-Fraction_sequencing_bases_on_flank\t$flank_sequence_rate%
+Fraction_sequencing_bases_on_target\t$target_sequence_rate
+Fraction_sequencing_bases_on_flank\t$flank_sequence_rate
 Average_sequencing_depth_on_target\t$ave_target_depth
 Average_sequencing_depth_on_flank\t$ave_flank_depth
 Base_covered_on_target\t$depth_info{'target'}{'cov'}
 Base_covered_on_flank\t$depth_info{'flank'}{'cov'}
-Coverage_target\t$target_cov_rate%
-Coverage_flank\t$flank_cov_rate%
-Fraction_target_covered_at_least_10x\t$target_10x_rate%
-Fraction_target_covered_at_least_20x\t$target_20x_rate%
-Fraction_target_covered_at_least_30x\t$target_30x_rate%
-Fraction_flank_covered_at_least_10x\t$flank_10x_rate%
-Fraction_flank_covered_at_least_20x\t$flank_20x_rate%
-Fraction_flank_covered_at_least_30x\t$flank_30x_rate%
+Coverage_target\t$target_cov_rate
+Coverage_flank\t$flank_cov_rate
+Fraction_target_covered_at_least_10x\t$target_10x_rate
+Fraction_target_covered_at_least_20x\t$target_20x_rate
+Fraction_target_covered_at_least_30x\t$target_30x_rate
+Fraction_flank_covered_at_least_10x\t$flank_10x_rate
+Fraction_flank_covered_at_least_20x\t$flank_20x_rate
+Fraction_flank_covered_at_least_30x\t$flank_30x_rate
 OUTPUT
 	} else {
 		print "Start depth stat by chr!\n";
@@ -122,27 +122,27 @@ OUTPUT
 		$pm->wait_all_children;
 		print "Finished all chrs depth stat!\n";
 		%depth_info = %{summary_depth("$outDir/$sampleId.chr.depth.txt")};
-		my $map_rate = sprintf("%.2f", $bam_info{'map'}/$bam_info{'reads'}*100);
-		my $dup_rate = sprintf("%.2f", $bam_info{'dup'}/$bam_info{'reads'}*100);
+		my $map_rate = sprintf("%.2f\%", $bam_info{'map'}/$bam_info{'reads'}*100);
+		my $dup_rate = sprintf("%.2f\%", $bam_info{'dup'}/$bam_info{'reads'}*100);
 		my $genome_sequence_rate = sprintf("%.2f", $depth_info{$sampleId}{'sequences'}/$bam_info{'bases'}*100); 
 		my $ave_genome_depth = sprintf("%.2f", $depth_info{$sampleId}{'sequences'}/$depth_info{$sampleId}{'bases'});
-		my $genome_cov_rate = sprintf("%.2f", $depth_info{$sampleId}{'cov'}/$depth_info{$sampleId}{'bases'}*100); 
-		my $genome_10x_rate = sprintf("%.2f", $depth_info{$sampleId}{'x10'}/$depth_info{$sampleId}{'bases'}*100);
-		my $genome_20x_rate = sprintf("%.2f", $depth_info{$sampleId}{'x20'}/$depth_info{$sampleId}{'bases'}*100);
-		my $genome_30x_rate = sprintf("%.2f", $depth_info{$sampleId}{'x30'}/$depth_info{$sampleId}{'bases'}*100);
+		my $genome_cov_rate = sprintf("%.2f\%", $depth_info{$sampleId}{'cov'}/$depth_info{$sampleId}{'bases'}*100); 
+		my $genome_10x_rate = sprintf("%.2f\%", $depth_info{$sampleId}{'x10'}/$depth_info{$sampleId}{'bases'}*100);
+		my $genome_20x_rate = sprintf("%.2f\%", $depth_info{$sampleId}{'x20'}/$depth_info{$sampleId}{'bases'}*100);
+		my $genome_30x_rate = sprintf("%.2f\%", $depth_info{$sampleId}{'x30'}/$depth_info{$sampleId}{'bases'}*100);
 		$output=<<OUTPUT;
 Sample\t$sampleId
 Reads_number\t$bam_info{'reads'}
 Bases_number\t$bam_info{'bases'}
-Mapping_rate\t$map_rate%
-Duplication_rate\t$dup_rate%
+Mapping_rate\t$map_rate
+Duplication_rate\t$dup_rate
 Genome_bases\t$depth_info{$sampleId}{'bases'}
 Average_sequencing_depth_on_genome\t$ave_genome_depth
 Base_covered_on_genome\t$depth_info{$sampleId}{'cov'}
-Coverage_genome\t$genome_cov_rate%
-Fraction_genome_covered_at_least_10x\t$genome_10x_rate%
-Fraction_genome_covered_at_least_20x\t$genome_20x_rate%
-Fraction_genome_covered_at_least_30x\t$genome_30x_rate%
+Coverage_genome\t$genome_cov_rate
+Fraction_genome_covered_at_least_10x\t$genome_10x_rate
+Fraction_genome_covered_at_least_20x\t$genome_20x_rate
+Fraction_genome_covered_at_least_30x\t$genome_30x_rate
 OUTPUT
 	}
 	open R, ">$outDir/$sampleId.bam.stat.txt" or die $!;

@@ -167,7 +167,7 @@ if ($fastq_label) {
 		# Fastq filter
 		if ($step =~ /2/) {
 			my $filterDir = "$projectDir/$sampleId/01.filter";
-			my $filter_shell = "$config->{fastp} -i $fastq->[0] -o $filterDir/$sampleId.clean.1.fq.gz -I $fastq->[1] -O $filterDir/$sampleId.clean.2.fq.gz $fastp_arg -j $filterDir/$sampleId.fastq.json -h $filterDir/$sampleId.fastq.html -R '$sampleId fastq report'";
+			my $filter_shell = "$config->{fastp} -i $fastq->[0] -o $filterDir/$sampleId.clean.1.fq.gz -I $fastq->[1] -O $filterDir/$sampleId.clean.2.fq.gz $fastp_arg -j $filterDir/$sampleId.fastq.json -h $filterDir/$sampleId.fastq.html -R '$sampleId fastq report'\n";
 			$filter_shell .= "perl -I '$Bin/../lib' -MReadsStat -e \"reads_stat('$filterDir/$sampleId.fastq.json')\"\n";
 			write_shell($filter_shell, "$filterDir/$sampleId.filter.sh");
 			$wgs_shell{$sampleId} .= $step1_shell . " &\n"if ($step =~ /1/);
@@ -229,6 +229,12 @@ foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 	write_shell($wgs_shell{$sampleId}, "$projectDir/$sampleId/$sampleId.sh");
 	$main_shell .= "sh $projectDir/$sampleId/$sampleId.sh >$projectDir/$sampleId/$sampleId.sh.o 2>$projectDir/$sampleId/$sampleId.sh.e\n";
 }
+
+$main_shell.=<<Merge;
+paste $projectDir/*/01.filter/*.fq.stat.txt | awk '{for(i=3; i<=NF; i+=2){\$i=""}; print \$0}' | sed "s/\\s\\+/\\t/g" > $projectDir/sample.fq.stat.xls
+paste $projectDir/*/02.align/*.bam.stat.txt | awk '{for(i=3; i<=NF; i+=2){\$i=""}; print \$0}' | sed "s/\\s\\+/\\t/g" > $projectDir/sample.bam.stat.xls
+cat $projectDir/sample.fq.stat.xls $projectDir/sample.bam.stat.xls | sed '7d' | sed '8,10d'> $projectDir/sample.stat.xls 
+Merge
 
 write_shell($main_shell, "$projectDir/main.sh");
 

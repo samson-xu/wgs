@@ -69,7 +69,7 @@ MergeGVCFs
 	system("echo '$prefix\t$outDir/$prefix.g.vcf.gz' > $outDir/$prefix.gvcf.txt") == 0 || die $!;
 	my $sample_gvcf_list_file = "$outDir/$prefix.gvcf.txt";
 	my $output_vcf = genotype_gvcf($gatk, $sample_gvcf_list_file, \@intervals, $interval_padding, $outDir, $prefix, $ref, $dbsnp);
-	vcf_filter($gatk, $output_vcf, $outDir, $prefix, $target, $dbsnp, $mills, $axiom, $hapmap, $omni, $thousand);
+	vcf_filter($gatk, $output_vcf, $outDir, $prefix, '1', $dbsnp, $mills, $axiom, $hapmap, $omni, $thousand);
 	$shell=<<SHELL;
 # Pipeline for SNP/InDel detect
 sh $outDir/$prefix.gvcf.sh >$outDir/$prefix.gvcf.sh.o 2>$outDir/$prefix.gvcf.sh.e
@@ -192,6 +192,16 @@ $gatk VariantFiltration \\
 
 wait
 
+$gatk MergeVcfs \\
+-I $outDir/$prefix.snp.filter.vcf.gz \\
+-I $outDir/$prefix.indel.filter.vcf.gz \\
+-O $outDir/$prefix.filter.vcf.gz
+
+$gatk IndexFeatureFile \\
+-I $outDir/$prefix.filter.vcf.gz
+
+rm $outDir/$prefix.snp.* $outDir/$prefix.indel.*
+
 HardFilter
 	} else {
 		$vcf_filter_shell.=<<VQSR;
@@ -241,35 +251,23 @@ ApplyVQSR \\
 --tranches-file $outDir/$prefix.indel.tranches \\
 --truth-sensitivity-filter-level 99.0 \\
 --create-output-variant-index true \\
---mode INDEL &
+--mode INDEL
 
 $gatk --java-options -Xms5g \\
 ApplyVQSR \\
--O $outDir/$prefix.snp.filter.vcf.gz \\
--V $vcf \\
+-O $outDir/$prefix.filter.vcf.gz \\
+-V $outDir/$prefix.indel.filter.vcf.gz \\
 --recal-file $outDir/$prefix.snp.recal.vcf.gz \\
 --use-allele-specific-annotations \\
 --tranches-file $outDir/$prefix.snp.tranches \\
 --truth-sensitivity-filter-level 99.7 \\
 --create-output-variant-index true \\
---mode SNP &
-
-wait
-
-VQSR
-	}
-	$vcf_filter_shell.=<<MergeVcfs;
-$gatk MergeVcfs \\
--I $outDir/$prefix.snp.filter.vcf.gz \\
--I $outDir/$prefix.indel.filter.vcf.gz \\
--O $outDir/$prefix.filter.vcf.gz
-
-$gatk IndexFeatureFile \\
--I $outDir/$prefix.filter.vcf.gz
+--mode SNP
 
 rm $outDir/$prefix.snp.* $outDir/$prefix.indel.*
 
-MergeVcfs
+VQSR
+	}
 	write_shell($vcf_filter_shell, "$outDir/$prefix.vcf_filter.sh");
 }
 
