@@ -23,7 +23,7 @@ sub reads_align {
 	my $arg = shift;
 	my $outDir = shift;
 	my ($bwa, $merge, $mark, $bqsr, $apply, $shell, $tmp_shell);
-	#$thread = int($thread/$fastq->[2]);
+	my $thread_split = int($thread/$fastq->[2]);
 	my $prefix = basename($fastq->[0]);
 	$prefix =~ s/.clean.1.fq.gz//;
 	my @prefix_list;
@@ -95,12 +95,25 @@ MergeBam
 	write_shell($merge, "$outDir/$out_pre.merge.sh");
 	
 	$tmp_shell .= "sh $outDir/$out_pre.merge.sh >$outDir/$out_pre.merge.sh.o 2>$outDir/$out_pre.merge.sh.e &\n";
+
+	$mark.=<<FIX;
+$samtools fixmate -m --threads $thread_split $outDir/$out_pre.merge.bam $outDir/$out_pre.fix.bam && \\
+$samtools sort -l 0 -o /dev/stdout -T $outDir/$out_pre --threads $thread_split $outDir/$out_pre.fix.bam \\
+| \\
+$gatk SetNmMdAndUqTags \\
+--INPUT /dev/stdin \\
+--OUTPUT $outDir/$out_pre.sortset.bam \\
+--REFERENCE_SEQUENCE $ref &
+
+FIX
+
 	} 
 
 	write_shell($bwa, "$outDir/$prefix.bwa.sh");
 	$shell .= "sh $outDir/$prefix.bwa.sh >$outDir/$prefix.bwa.sh.o 2>$outDir/$prefix.bwa.sh.e\n";
 	$shell .= $tmp_shell;
 	
+=pod
 	$mark=<<MarkDuplicates;
 # Mark duplicate reads to avoid counting non-independent observations
 $gatk MarkDuplicates \\
@@ -136,6 +149,18 @@ $gatk SetNmMdAndUqTags \\
 rm $outDir/$prefix.markdup.bam $outDir/$prefix.metrics
 
 SortSam
+=cut
+
+	$mark.=<<MARK;
+wait
+
+$samtools merge -f -1 --threads $thread $outDir/$prefix.all.bam $outDir/*.sortset.bam  
+$samtools markdup -T $outDir/$prefix --threads $thread $outDir/$prefix.all.bam $outDir/$prefix.markdup.sort.bam
+$samtools index -@ $thread $outDir/$prefix.markdup.sort.bam $outDir/$prefix.markdup.sort.bai
+
+rm $outDir/*.fix.bam $outDir/*.sortset.bam $outDir/$prefix.all.bam
+
+MARK
 	write_shell($mark, "$outDir/$prefix.mark.sh");		
 
 	# Generate sets of intervals for scatter-gathering over chromosomes	
