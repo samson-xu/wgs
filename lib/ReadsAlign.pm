@@ -154,6 +154,8 @@ SortSam
 	$mark.=<<MARK;
 wait
 
+rm $outDir/*.merge.bam
+
 $samtools merge -f -1 --threads $thread $outDir/$prefix.all.bam $outDir/*.sortset.bam  
 $samtools markdup -T $outDir/$prefix --threads $thread $outDir/$prefix.all.bam $outDir/$prefix.markdup.sort.bam
 $samtools index -@ $thread $outDir/$prefix.markdup.sort.bam $outDir/$prefix.markdup.sort.bai

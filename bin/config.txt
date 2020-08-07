@@ -1,9 +1,11 @@
 #File or tool path settings
 #BamQc.pm require Parallel::ForkManager module
 #insert_size_evaluate.pl require Statistics::Basic module
+#factera.pl require Statistics::Descriptive
 #name	path
 hg19	/data/bioit/biodata/xuxy/pipeline/wgs/db/hg19.fa
 dict	/data/bioit/biodata/xuxy/pipeline/wgs/db/hg19.dict
+2bit	/data/bioit/biodata/xuxy/pipeline/wgs/db/hg19.2bit
 dbsnp	/data/bioit/biodata/xuxy/pipeline/wgs/db/dbsnp_138.hg19.vcf.gz
 mills	/data/bioit/biodata/xuxy/pipeline/wgs/db/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf.gz
 axiom	/data/bioit/biodata/xuxy/pipeline/wgs/db/Axiom_Exome_Plus.genotypes.all_populations.poly.vcf.gz
