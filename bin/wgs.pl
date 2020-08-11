@@ -24,7 +24,7 @@ use VariantCall;
 my $config = path_check("$Bin/config.txt");
 
 # Global variable
-my ($help, $stat, $fastqc_help, $fastp_help, $backtrack_help, $mem_help, $mem2_help, %wgs_shell, $main_shell);
+my ($help, $stat, $fastqc_help, $fastp_help, $backtrack_help, $mem_help, $mem2_help, $fusion_help, %wgs_shell, $main_shell);
 my $project = strftime("%Y%m%d",localtime());
 my $target_region = '';
 my $interval_padding = 0;
@@ -37,6 +37,7 @@ my $fastp_arg = "--detect_adapter_for_pe -q 15 -u 40 -n 5 -l 50 -w $thread -d 3"
 my $clean_fastq_split = 3;
 my $align_way = 'mem2';
 my $align_arg = '';
+my $fusion_arg = '';
 
 # Guide
 my $guide_separator = "=" x 150;
@@ -67,27 +68,30 @@ PARAMETER
 $indent $0 [options] sample.lst
 
 $parameter_separator Basic $parameter_separator 
-$indent -help                        Print this guide information 
-$indent -project <str>               Project name, default "$project"
-$indent -target_region <str>         Target region bed files on the genome
-$indent -interval_padding <i>        Amount of padding (in bp) to add to each interval, default "$interval_padding"
-$indent -workDir <str>               Work directory, default "$workDir"
-$indent -ref <str>                   Reference genome absolute path, default "$ref"
-$indent -step <str>                  Set step for run, default "$step"
-$indent -thread <i>                  Set the number of threads for the program to run, default "$thread"
-$indent -stat                        Wether stat sample information, default not stat
+$indent --help                        Print this guide information 
+$indent --project <str>               Project name, default "$project"
+$indent --target_region <str>         Target region bed files on the genome
+$indent --interval_padding <i>        Amount of padding (in bp) to add to each interval, default "$interval_padding"
+$indent --workDir <str>               Work directory, default "$workDir"
+$indent --ref <str>                   Reference genome absolute path, default "$ref"
+$indent --step <str>                  Set step for run, default "$step"
+$indent --thread <i>                  Set the number of threads for the program to run, default "$thread"
+$indent --stat                        Wether stat sample information, default not stat
 $parameter_separator Filter $parameter_separator 
-$indent -fastqc_help                 Print fastqc help information
-$indent -fastqc_arg                  Fastqc argument setting, default "$fastqc_arg"
-$indent -fastp_help                  Print fastp help information
-$indent -fastp_arg                   Fastp argument setting, default "$fastp_arg"
-$indent -clean_fastq_split           Specifies how many parts the output fastq is divided into, default "$clean_fastq_split"
+$indent --fastqc_help                 Print fastqc help information
+$indent --fastqc_arg                  Fastqc argument setting, default "$fastqc_arg"
+$indent --fastp_help                  Print fastp help information
+$indent --fastp_arg                   Fastp argument setting, default "$fastp_arg"
+$indent --clean_fastq_split           Specifies how many parts the output fastq is divided into, default "$clean_fastq_split"
 $parameter_separator Align $parameter_separator 
 $indent --align_way                  Select align algorithm, 'backtrack', 'mem' or 'mem2', default "$align_way"
 $indent --backtrack_help             Print BWA-backtrack help information
 $indent --mem_help                   Print BWA-mem help information
 $indent --mem2_help                  Print BWA-mem2 help information
 $indent --align_arg                  Align argument setting, this has to correspond to the align_way, default "$align_arg"
+$parameter_separator Fusion $parameter_separator 
+$indent --fusion_help                Print fusion help information 
+$indent --fusion_arg                 Fusion argument setting, default "$fusion_arg"
 
 NOTE
 $indent 1. Fastq quality system should be phred 33
@@ -117,14 +121,20 @@ GetOptions(
 	"backtrack_help" => \$backtrack_help,
 	"mem_help" => \$mem_help,
 	"mem2_help" => \$mem2_help,
+	"fusion_help" => \$fusion_help,
+	"fusion_arg=s" => \$fusion_arg,
 );
 
-die $guide if ((@ARGV == 0 || defined $help) && !defined $fastqc_help && !defined $fastp_help && !defined $backtrack_help && !defined $mem_help && !defined $mem2_help);
-die `$config->{fastqc} -h` if (defined $fastqc_help);
-die `$config->{fastp}` if (defined $fastp_help);
-die `$config->{bwa} aln` if (defined $backtrack_help);
-die `$config->{bwa} mem` if (defined $mem_help);
-die `$config->{mem2} mem` if (defined $mem2_help);
+#die $guide if ((@ARGV == 0 || defined $help) && !defined $fastqc_help && !defined $fastp_help && !defined $backtrack_help && !defined $mem_help && !defined $mem2_help && !defined $fusion_help);
+if (@ARGV == 0) {
+	die `$config->{fastqc} -h` . "\n" if (defined $fastqc_help);
+	die `$config->{fastp}` . "\n" if (defined $fastp_help);
+	die `$config->{bwa} aln` . "\n" if (defined $backtrack_help);
+	die `$config->{bwa} mem` . "\n" if (defined $mem_help);
+	die `$config->{mem2} mem` . "\n" if (defined $mem2_help);
+	die `$config->{fusion}`."\n" if (defined $fusion_help);
+}
+die $guide if (@ARGV == 0 || defined $help);
 
 $fastp_arg .= " --split $clean_fastq_split" if ($clean_fastq_split and $clean_fastq_split >=2);
 
@@ -198,6 +208,7 @@ foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 		call_variant($config->{'gatk'}, $sampleInfo{$sampleId}{'align'}, $ref, $config->{'dict'}, $config->{'dbsnp'}, $config->{'mills'}, $config->{'axiom'}, $config->{'hapmap'}, $config->{'omni'}, $config->{'thousand'}, $callDir, $target_region, $interval_padding);
 		$wgs_shell{$sampleId} .= "sh $callDir/$sampleId.variant.sh >$callDir/$sampleId.variant.sh.o 2>$callDir/$sampleId.variant.sh.e &\n";
 		$wgs_shell{$sampleId} .= "perl -I '$Bin/../lib' -MBamQc -e \"bam_qc('$sampleInfo{$sampleId}{'align'}', '$config->{'samtools'}', '$target_region', '$config->{'bedtools'}', $thread)\" &\n";
+		$wgs_shell{$sampleId} .= "\nwait\n\n";
 		$sampleInfo{$sampleId}{'variant'} = "$callDir/$sampleId.filter.vcf.gz"; 
 	}
 	# CNV detection
@@ -206,7 +217,24 @@ foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 	}
 	# Fusion gene detection
 	if ($step =~ /6/) {
-
+		my $fusionDir = "$projectDir/$sampleId/05.fusion";
+		my $fusion_shell=<<FUSION;
+# Fusion detect
+$config->{'fusion'} \\
+-o $fusionDir \\
+-A $config->{'samtools'} \\
+-T $config->{'twoBitToFa'} \\
+-B $config->{'blastn'} \\
+-M $config->{'makeblastdb'} \\
+-p $thread \\
+-F $fusion_arg \\
+$sampleInfo{$sampleId}{'align'} \\
+$config->{'interGene'} \\
+$config->{'2bit'} $target_region
+FUSION
+		write_shell($fusion_shell, "$fusionDir/$sampleId.fusion.sh");
+		$wgs_shell{$sampleId} .= "sh $fusionDir/$sampleId.fusion.sh >$fusionDir/$sampleId.fusion.sh.o 2>$fusionDir/$sampleId.fusion.sh.e\n";
+		$sampleInfo{$sampleId}{'fusion'} = "$fusionDir/$sampleId.fusions.txt";
 	}
 	# SV detection
 	if ($step =~ /7/) {
@@ -225,7 +253,6 @@ foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 $main_shell = "# Run wgs pipeline for all samples\n";
 
 foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
-	$wgs_shell{$sampleId} .= "\nwait\n\n";
 	write_shell($wgs_shell{$sampleId}, "$projectDir/$sampleId/$sampleId.sh");
 	$main_shell .= "sh $projectDir/$sampleId/$sampleId.sh >$projectDir/$sampleId/$sampleId.sh.o 2>$projectDir/$sampleId/$sampleId.sh.e\n";
 }

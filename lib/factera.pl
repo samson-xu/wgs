@@ -36,7 +36,7 @@ my $size = @ARGV;
 
 my %opts = (r=>5, m=>2, x=>5, s=>1, f=>0.9, S=>0.95, p=>4, k=>12, b=>500, a=>50, c=>16);
 my %opts1;
-getopts('o:r:m:x:s:f:S:p:veCFk:b:p:a:tc:', \%opts1);
+getopts('o:A:T:B:M:r:m:x:s:f:S:p:veCFk:b:p:a:tc:', \%opts1);
 
 die("
 FACTERA version $version by Aaron M. Newman (amnewman\@stanford.edu)
@@ -57,6 +57,10 @@ Usage:
 
 Options (defaults in parentheses):
     -o <dir>  output directory (tumor.bam directory)
+    -A <str>  samtools program path, must be set 
+    -T <str>  twoBitToFa program path, must be set
+    -B <str>  blastn program path, must be set
+    -M <str>  makeblastdb program path, must be set
     -r <int>  minimum number of breakpoint-spanning reads required for output ($opts{r})
     -m <int>  minimum number of discordant reads required for each candidate fusion ($opts{m})
     -x <int>  maximum number of breakpoints to examine for each pair of genomic regions ($opts{x})
@@ -78,6 +82,12 @@ For detailed help, see http://factera.stanford.edu
 
 ") if($size == 0);
 
+# check whether set program path
+die("\'samtools\' path not set, please set -A. Abort!\n") if(!(-e $opts1{A}));
+die("\'twoBitToFa\' path not set, please set -T. Abort!\n") if(!(-e $opts1{T}));
+die("\'blastn\' path not set, please set -B. Abort!\n") if(!(-e $opts1{B}));
+die("\'makeblastdb\' path not set, please set -M. Abort!\n") if(!(-e $opts1{M}));
+
 my $options='';
 foreach my $opt(keys %opts1){
     $options.='|'.$opt.$opts1{$opt};
@@ -85,6 +95,22 @@ foreach my $opt(keys %opts1){
     if($opt eq "o") {
         die("\'$opts1{$opt}\' is not a directory. Abort!\n") if(!(-d $opts1{$opt}));
         print "Output directory: $opts1{$opt}\n";
+    }
+    if($opt eq "A") {
+        die("\'samtools\' does not exist. Abort!\n") if(!(-e $opts1{$opt}));
+        print "samtools path: $opts1{$opt}\n";
+    }
+    if($opt eq "T") {
+        die("\'twoBitToFa\' does not exist. Abort!\n") if(!(-e $opts1{$opt}));
+        print "twoBitToFa path: $opts1{$opt}\n";
+    }
+    if($opt eq "B") {
+        die("\'blastn\' does not exist. Abort!\n") if(!(-e $opts1{$opt}));
+        print "blastn path: $opts1{$opt}\n";
+    }
+    if($opt eq "M") {
+        die("\'makeblastdb\' does not exist. Abort!\n") if(!(-e $opts1{$opt}));
+        print "makeblastdb path: $opts1{$opt}\n";
     }
     if($opt eq "r") {
         die("Minimum breakpoint-spanning reads needed must be an integer. Abort!\n") if is_integer($opts1{$opt}) == 0;
@@ -169,6 +195,10 @@ for (my $itor = 0; $itor < @ARGV; $itor++)
 }
 
 #PARAMETERS============================================================================================
+my $samtools = $opts{A};
+my $twoBitToFa = $opts{T};
+my $blastn = $opts{B};
+my $makeblastDB = $opts{M};
 my $MINSPANNINGREADS = $opts{r}; #minimum number of breakpoint-spanning reads needed to output a fusion
 my $MINIMPROPERREADS = $opts{m}; #minimum number of discordant reads needed to consider putative fusion
 my $MAXBPS2EXAMINE = $opts{x}; #maximum number of putative breakpoints to consider for each unique gene pair
@@ -214,6 +244,10 @@ Genomic coordinates:\t$exon
 Reference genome:\t$twobit
 Targeted regions:\t$Ta_
 Output directory (o):\t$OUTPUTDIR
+Samtools path (A):\t$samtools
+TwoBitToFa path (T):\t$twoBitToFa
+Blastn path (B):\t$blastn
+Makeblastdb path (M):\t$makeblastDB
 Minimum breakpoint-spanning reads for each fusion (r):\t$MINSPANNINGREADS
 Minimum discordant reads for each candidate fusion (m):\t$MINIMPROPERREADS
 Maximum breakpoints to examine for each read pair (x):\t$MAXBPS2EXAMINE
@@ -313,7 +347,7 @@ if($makeblastdb == 1) {open(blast, ">$blastdb") or die $!;}
 #collect all ids of mapped improper pairs in targeted region 
 my $insert = "-L $targets";
 if($targets eq '0') {$insert = "";}
-open my $imp_pairs, '-|', "samtools view -F 2 $insert $bam | awk '\$2 ~ /81|161|97|145|65|129|113|177/'" or die;
+open my $imp_pairs, '-|', "$samtools view -F 2 $insert $bam | awk '\$2 ~ /81|161|97|145|65|129|113|177/'" or die;
 
 my $count = 0;
 
@@ -531,9 +565,7 @@ close(output2);
 
 $count = 0; #reset counter for progress meter
 
-#open my $sclipped, '-|', "samtools view -F 12 -L $fusetargets $bam | awk '\$2 ~ /99|147|83|163|67|131|115|179/' | awk '\$6 ~ /S/'" or die;
-
-open my $sclipped, '-|', "samtools view -F 12 -L $fusetargets $bam | awk '\$2 ~ /99|147|83|163|67|131|115|179|81|161|97|145|65|129|113|177/' | awk '\$6 ~ /S/'" or die;
+open my $sclipped, '-|', "$samtools view -F 12 -L $fusetargets $bam | awk '\$2 ~ /99|147|83|163|67|131|115|179|81|161|97|145|65|129|113|177/' | awk '\$6 ~ /S/'" or die;
 
 my %breakpoints = (); #store potential breakpoints [key1=gene; key2=position; value=count]
 
@@ -1174,7 +1206,7 @@ sub getNormDepth{
             my $insert = "-l $targets";
             if($targets eq '0') {$insert = "";}
 
-            my $pid = open3(gensym, \*PH, ">&NULL", "samtools mpileup -ABr $chr1:$bp1-" . ($bp1+$buffer) . " -Q20 $insert -d 10000000 $bam");
+            my $pid = open3(gensym, \*PH, ">&NULL", "$samtools mpileup -ABr $chr1:$bp1-" . ($bp1+$buffer) . " -Q20 $insert -d 10000000 $bam");
 
             my @d1 = (); #store bp depth for gene 1
             
@@ -1193,7 +1225,7 @@ sub getNormDepth{
             $med_depth1 = $stat->median();
 
             
-            my $pid = open3(gensym, \*PH, ">&NULL", "samtools mpileup -ABr $chr2:$bp2-" . ($bp2+$buffer) . " -Q20 $insert -d 10000000 $bam");
+            my $pid = open3(gensym, \*PH, ">&NULL", "$samtools mpileup -ABr $chr2:$bp2-" . ($bp2+$buffer) . " -Q20 $insert -d 10000000 $bam");
 
             my @d2 = (); #store bp depth for gene 2
             
@@ -1251,8 +1283,8 @@ sub doBLAST{
     $bdbname = "$OUTPUTDIR/$bdbname";
     
     #TODO: detect blast version: blastx: -max_target_seqs; blastn "-num_alignments 9999999 -num_descriptions 9999999"
-    #open my $blastout, '-|', "blastn -task 'megablast' -query $query -db $bdbname -outfmt 6 -num_threads $BLASTTHREADS -num_alignments 9999999 -num_descriptions 9999999" or die;
-    open my $blastout, '-|', "blastn -task 'megablast' -query $query -db $bdbname -outfmt 6 -num_threads $BLASTTHREADS -max_target_seqs 9999999" or die;
+    #open my $blastout, '-|', "$blastn -task 'megablast' -query $query -db $bdbname -outfmt 6 -num_threads $BLASTTHREADS -num_alignments 9999999 -num_descriptions 9999999" or die;
+    open my $blastout, '-|', "$blastn -task 'megablast' -query $query -db $bdbname -outfmt 6 -num_threads $BLASTTHREADS -max_target_seqs 9999999" or die;
     
     my $bp_depth = 0; #breakpoint depth
     my $bpd_SC = 0; #count soft-clipped properly paired read support
@@ -1332,7 +1364,7 @@ sub makeBLASTdb{
     
     #print all unmapped reads to blast database fasta file 
 
-    open my $blastreads, '-|', "samtools view -F 2 -L $fusetargets $bam" or die; 
+    open my $blastreads, '-|', "$samtools view -F 2 -L $fusetargets $bam" or die; 
     
     $count = 0;
     while(<$blastreads>){
@@ -1378,7 +1410,7 @@ sub makeBLASTdb{
     printf("[%02d:%02d:%02d]", int($currtime / 3600), int(($currtime % 3600) / 60),int($currtime % 60));
     print " Creating blast database...";
     
-    system("makeblastdb -in $bdbname -dbtype 'nucl' >/dev/null");
+    system("$makeblastDB -in $bdbname -dbtype 'nucl' >/dev/null");
     
     if($VERBOSE == 1){
         print "\n           - Done\n";
@@ -1458,7 +1490,7 @@ sub getFusionSeq{
     my $output = basename($bam);
     $output =~ s/bam/factera.tmp.fa/g;
     $output = "$OUTPUTDIR/$output";
-    system("twoBitToFa -noMask $twobit:$index1,$index2 $output");
+    system("$twoBitToFa -noMask $twobit:$index1,$index2 $output");
     
     #open temporary fasta file containing genomic sequences
     open(FILE, $output) or die $!;
@@ -1772,7 +1804,7 @@ sub bp_correction
     my $output = basename($bam);
     $output =~ s/bam/factera.tmp.fa/g;
     $output = "$OUTPUTDIR/$output";
-    system("twoBitToFa -noMask $twobit:$index $output");
+    system("$twoBitToFa -noMask $twobit:$index $output");
     
     #open temporary fasta file containing genomic sequences
     open(FILE, $output) or die $!;

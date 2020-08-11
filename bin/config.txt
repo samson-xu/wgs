@@ -2,6 +2,7 @@
 #BamQc.pm require Parallel::ForkManager module
 #insert_size_evaluate.pl require Statistics::Basic module
 #factera.pl require Statistics::Descriptive
+#cnvkit require DNAcopy R packages
 #name	path
 hg19	/data/bioit/biodata/xuxy/pipeline/wgs/db/hg19.fa
 dict	/data/bioit/biodata/xuxy/pipeline/wgs/db/hg19.dict
@@ -19,3 +20,10 @@ bwa	/data/bioit/biodata/xuxy/pipeline/wgs/soft/bwa-0.7.17/bwa
 samtools	/data/bioit/biodata/xuxy/pipeline/wgs/soft/samtools-1.10-install/bin/samtools
 gatk	/data/bioit/biodata/xuxy/pipeline/wgs/soft/gatk-4.1.8.0/gatk
 bedtools	/data/bioit/biodata/xuxy/pipeline/wgs/soft/bedtools2-2.29.2/bin/bedtools
+twoBitToFa	/data/bioit/biodata/xuxy/pipeline/wgs/soft/fusion/twoBitToFa
+blastn	/data/bioit/biodata/xuxy/pipeline/wgs/soft/fusion/ncbi-blast-2.10.1+/bin/blastn
+makeblastdb	/data/bioit/biodata/xuxy/pipeline/wgs/soft/fusion/ncbi-blast-2.10.1+/bin/makeblastdb
+interGene	/data/bioit/biodata/xuxy/pipeline/wgs/soft/fusion/inter-gene.bed
+fusion	/data/bioit/biodata/xuxy/pipeline/wgs/lib/factera.pl
+bgzip	/data/bioit/biodata/xuxy/miniconda3/bin/bgzip
+tabix	/data/bioit/biodata/xuxy/miniconda3/bin/tabix
