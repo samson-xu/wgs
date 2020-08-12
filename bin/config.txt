@@ -25,5 +25,6 @@ blastn	/data/bioit/biodata/xuxy/pipeline/wgs/soft/fusion/ncbi-blast-2.10.1+/bin/
 makeblastdb	/data/bioit/biodata/xuxy/pipeline/wgs/soft/fusion/ncbi-blast-2.10.1+/bin/makeblastdb
 interGene	/data/bioit/biodata/xuxy/pipeline/wgs/soft/fusion/inter-gene.bed
 fusion	/data/bioit/biodata/xuxy/pipeline/wgs/lib/factera.pl
-bgzip	/data/bioit/biodata/xuxy/miniconda3/bin/bgzip
-tabix	/data/bioit/biodata/xuxy/miniconda3/bin/tabix
+bgzip	/data/bioit/biodata/xuxy/pipeline/wgs/soft/manta-1.6.0-install/libexec/bgzip
+tabix	/data/bioit/biodata/xuxy/pipeline/wgs/soft/manta-1.6.0-install/libexec/tabix
+manta	/data/bioit/biodata/xuxy/pipeline/wgs/soft/manta-1.6.0-install/bin/configManta.py

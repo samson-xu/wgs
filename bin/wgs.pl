@@ -19,6 +19,7 @@ use SampleStat;
 use WriteShell;
 use ReadsAlign;
 use VariantCall;
+use SV;
 
 # File or tool path check
 my $config = path_check("$Bin/config.txt");
@@ -238,7 +239,13 @@ FUSION
 	}
 	# SV detection
 	if ($step =~ /7/) {
-
+		my $svDir = "$projectDir/$sampleId/06.sv";
+		my $mantaDir = "$svDir/manta";
+		my $region = $config->{'dict'}; 
+		$region = $target_region if ($target_region);
+		manta($region, $config->{'manta'}, $sampleInfo{$sampleId}{'align'}, $config->{'hg19'}, $mantaDir, $thread, $config->{'bgzip'}, $config->{'tabix'});
+		$wgs_shell{$sampleId} .= "sh $mantaDir/$sampleId.manta.sh >$mantaDir/$sampleId.manta.sh.o 2>$mantaDir/$sampleId.manta.sh.e\n";
+		$sampleInfo{$sampleId}{'manta'} = "$mantaDir/results/variants/diploidSV.vcf.gz"; 
 	}
 	# Mitochondrial gene mutation detection
 	if ($step =~ /8/) {
