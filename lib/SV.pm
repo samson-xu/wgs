@@ -10,6 +10,9 @@ our @EXPORT = qw(manta);
 sub manta {
 	my $region = shift;
 	my $manta = shift;
+	my $convertInversion = shift;
+	my $samtools = shift;
+	my $AnnotSV = shift;
 	my $bam = shift;
 	my $ref = shift;
 	my $outDir = shift;
@@ -42,6 +45,11 @@ $manta \\
 --runDir $outDir --callRegions $region.gz $target_flag 
 
 $outDir/runWorkflow.py -j $thread
+
+$convertInversion $samtools $ref $outDir/results/variants/diploidSV.vcf.gz > $outDir/$prefix.sv.vcf
+
+$AnnotSV -SVminSize 10 -SVinputFile $outDir/$prefix.sv.vcf -outputFile $outDir/$prefix.sv.annot
+
 MANTA
 
 	write_shell($manta_shell, "$outDir/$prefix.manta.sh");

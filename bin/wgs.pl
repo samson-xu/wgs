@@ -31,7 +31,7 @@ my $target_region = '';
 my $interval_padding = 0;
 my $workDir = $ENV{'PWD'};
 my $ref = $config->{'hg19'};
-my $step = '123456789';
+my $step = 'cfbvnusmt';
 my $thread = '35';
 my $fastqc_arg = '';
 my $fastp_arg = "--detect_adapter_for_pe -q 15 -u 40 -n 5 -l 50 -w $thread -d 3";
@@ -55,15 +55,15 @@ $guide_separator
 
 
 FUNCTIONS
-$indent 1. Quality control and check(FastQC) of input data(FASTQ).
-$indent 2. Adapter cut and low quality sequence filter of fastq(Fastp).
-$indent 3. Fastq Alignment and quality control of sequence alignment results.
-$indent 4. SNP/InDel detection.
-$indent 5. CNV detection.
-$indent 6. Fusion gene detection.
-$indent 7. SV detection.
-$indent 8. Mitochondrial gene mutation detection.
-$indent 9. Statistics of variation detection results
+$indent c. Quality control and check(FastQC) of input data(FASTQ).
+$indent f. Adapter cut and low quality sequence filter of fastq(Fastp).
+$indent b. Fastq Alignment and quality control of sequence alignment results.
+$indent v. SNP/InDel detection.
+$indent n. CNV detection.
+$indent u. Fusion gene detection.
+$indent s. SV detection.
+$indent m. Mitochondrial gene mutation detection.
+$indent t. Statistics of variation detection results
 
 PARAMETER
 $indent $0 [options] sample.lst
@@ -168,7 +168,7 @@ if ($fastq_label) {
 	foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 		# Fastq quality control
 		my $fastq = $sampleInfo{$sampleId}{'fastq'};
-		if ($step =~ /1/) {
+		if ($step =~ /c/) {
 			my $fastqcDir = "$projectDir/$sampleId/00.fastqc";
 			my $fastqc_shell = "$config->{fastqc} -t $thread -o $fastqcDir $fastqc_arg $fastq->[0] $fastq->[1]\n";
 			$fastqc_shell .= "rm $fastqcDir/*.zip";
@@ -176,18 +176,18 @@ if ($fastq_label) {
 			$step1_shell = "sh $fastqcDir/$sampleId.fastqc.sh >$fastqcDir/$sampleId.fastqc.sh.o 2>$fastqcDir/$sampleId.fastqc.sh.e";
 		}
 		# Fastq filter
-		if ($step =~ /2/) {
+		if ($step =~ /f/) {
 			my $filterDir = "$projectDir/$sampleId/01.filter";
 			my $filter_shell = "$config->{fastp} -i $fastq->[0] -o $filterDir/$sampleId.clean.1.fq.gz -I $fastq->[1] -O $filterDir/$sampleId.clean.2.fq.gz $fastp_arg -j $filterDir/$sampleId.fastq.json -h $filterDir/$sampleId.fastq.html -R '$sampleId fastq report'\n";
 			$filter_shell .= "perl -I '$Bin/../lib' -MReadsStat -e \"reads_stat('$filterDir/$sampleId.fastq.json')\"\n";
 			write_shell($filter_shell, "$filterDir/$sampleId.filter.sh");
-			$wgs_shell{$sampleId} .= $step1_shell . " &\n"if ($step =~ /1/);
+			$wgs_shell{$sampleId} .= $step1_shell . " &\n"if ($step =~ /c/);
 			$wgs_shell{$sampleId} .= "sh $filterDir/$sampleId.filter.sh >$filterDir/$sampleId.filter.sh.o 2>$filterDir/$sampleId.filter.sh.e &\n";
 			$wgs_shell{$sampleId} .= "\nwait\n\n";
 			@{$sampleInfo{$sampleId}{'clean'}} = ("$filterDir/$sampleId.clean.1.fq.gz", "$filterDir/$sampleId.clean.2.fq.gz", $clean_fastq_split);
 		}
 		# Alignment
-		if ($step =~ /3/) {
+		if ($step =~ /b/) {
 			my $alignDir = "$projectDir/$sampleId/02.align";
 			@{$sampleInfo{$sampleId}{'clean'}} = ($fastq->[0], $fastq->[1], 1) unless ($sampleInfo{$sampleId}{'clean'});
 			my $align_program = $config->{'mem2'};
@@ -200,11 +200,11 @@ if ($fastq_label) {
 	}
 }
 
-print STDERR "Because your input is alignment result, the program will automatically skip the first few steps!\n" if (!$fastq_label and $step =~ /1|2|3/);	
+print STDERR "Because your input is alignment result, the program will automatically skip the first few steps!\n" if (!$fastq_label and $step =~ /c|f|b/);	
 foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 	$sampleInfo{$sampleId}{'align'} = "$projectDir/$sampleId/02.align/$sampleId.final.bam" unless ($sampleInfo{$sampleId}{'align'});
 	# SNP/InDel detection
-	if ($step =~ /4/) {
+	if ($step =~ /v/) {
 		my $callDir = "$projectDir/$sampleId/03.variant";
 		call_variant($config->{'gatk'}, $sampleInfo{$sampleId}{'align'}, $ref, $config->{'dict'}, $config->{'dbsnp'}, $config->{'mills'}, $config->{'axiom'}, $config->{'hapmap'}, $config->{'omni'}, $config->{'thousand'}, $callDir, $target_region, $interval_padding);
 		$wgs_shell{$sampleId} .= "sh $callDir/$sampleId.variant.sh >$callDir/$sampleId.variant.sh.o 2>$callDir/$sampleId.variant.sh.e &\n";
@@ -213,12 +213,12 @@ foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 		$sampleInfo{$sampleId}{'variant'} = "$callDir/$sampleId.filter.vcf.gz"; 
 	}
 	# CNV detection
-	if ($step =~ /5/) {
+	if ($step =~ /n/) {
 
 	}
 	# Fusion gene detection
-	if ($step =~ /6/) {
-		my $fusionDir = "$projectDir/$sampleId/05.fusion";
+	if ($step =~ /u/) {
+		my $fusionDir = "$projectDir/$sampleId/04.sv/fusion";
 		my $fusion_shell=<<FUSION;
 # Fusion detect
 $config->{'fusion'} \\
@@ -238,21 +238,20 @@ FUSION
 		$sampleInfo{$sampleId}{'fusion'} = "$fusionDir/$sampleId.fusions.txt";
 	}
 	# SV detection
-	if ($step =~ /7/) {
-		my $svDir = "$projectDir/$sampleId/06.sv";
-		my $mantaDir = "$svDir/manta";
+	if ($step =~ /s/) {
+		my $mantaDir = "$projectDir/$sampleId/04.sv/manta";
 		my $region = $config->{'dict'}; 
 		$region = $target_region if ($target_region);
-		manta($region, $config->{'manta'}, $sampleInfo{$sampleId}{'align'}, $config->{'hg19'}, $mantaDir, $thread, $config->{'bgzip'}, $config->{'tabix'});
+		manta($region, $config->{'manta'}, $config->{'convertInversion'}, $config->{'samtools'}, $config->{'AnnotSV'}, $sampleInfo{$sampleId}{'align'}, $config->{'hg19'}, $mantaDir, $thread, $config->{'bgzip'}, $config->{'tabix'});
 		$wgs_shell{$sampleId} .= "sh $mantaDir/$sampleId.manta.sh >$mantaDir/$sampleId.manta.sh.o 2>$mantaDir/$sampleId.manta.sh.e\n";
 		$sampleInfo{$sampleId}{'manta'} = "$mantaDir/results/variants/diploidSV.vcf.gz"; 
 	}
 	# Mitochondrial gene mutation detection
-	if ($step =~ /8/) {
+	if ($step =~ /m/) {
 
 	}
 	# Statistics of variation detection results
-	if ($step =~ /9/) {
+	if ($step =~ /t/) {
 
 	}
 }	
