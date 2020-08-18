@@ -20,12 +20,13 @@ use WriteShell;
 use ReadsAlign;
 use VariantCall;
 use SV;
+use CNV;
 
 # File or tool path check
 my $config = path_check("$Bin/config.txt");
 
 # Global variable
-my ($help, $stat, $fastqc_help, $fastp_help, $backtrack_help, $mem_help, $mem2_help, $fusion_help, %wgs_shell, $main_shell);
+my ($help, $stat, $fastqc_help, $fastp_help, $backtrack_help, $mem_help, $mem2_help, $fusion_help, %wgs_shell, $main_shell, $cnvDir);
 my $project = strftime("%Y%m%d",localtime());
 my $target_region = '';
 my $interval_padding = 0;
@@ -39,6 +40,7 @@ my $clean_fastq_split = 3;
 my $align_way = 'mem2';
 my $align_arg = '';
 my $fusion_arg = '';
+my $cnv_db = "";
 
 # Guide
 my $guide_separator = "=" x 150;
@@ -85,14 +87,16 @@ $indent --fastp_help                  Print fastp help information
 $indent --fastp_arg                   Fastp argument setting, default "$fastp_arg"
 $indent --clean_fastq_split           Specifies how many parts the output fastq is divided into, default "$clean_fastq_split"
 $parameter_separator Align $parameter_separator 
-$indent --align_way                  Select align algorithm, 'backtrack', 'mem' or 'mem2', default "$align_way"
-$indent --backtrack_help             Print BWA-backtrack help information
-$indent --mem_help                   Print BWA-mem help information
-$indent --mem2_help                  Print BWA-mem2 help information
-$indent --align_arg                  Align argument setting, this has to correspond to the align_way, default "$align_arg"
+$indent --align_way                   Select align algorithm, 'backtrack', 'mem' or 'mem2', default "$align_way"
+$indent --backtrack_help              Print BWA-backtrack help information
+$indent --mem_help                    Print BWA-mem help information
+$indent --mem2_help                   Print BWA-mem2 help information
+$indent --align_arg                   Align argument setting, this has to correspond to the align_way, default "$align_arg"
 $parameter_separator Fusion $parameter_separator 
-$indent --fusion_help                Print fusion help information 
-$indent --fusion_arg                 Fusion argument setting, default "$fusion_arg"
+$indent --fusion_help                 Print fusion help information 
+$indent --fusion_arg                  Fusion argument setting, default "$fusion_arg"
+$parameter_separator CNV $parameter_separator 
+$indent --cnv_db                      Path for CNV DB, if not set, a new db will be generated, default "$cnv_db"
 
 NOTE
 $indent 1. Fastq quality system should be phred 33
@@ -124,6 +128,7 @@ GetOptions(
 	"mem2_help" => \$mem2_help,
 	"fusion_help" => \$fusion_help,
 	"fusion_arg=s" => \$fusion_arg,
+	"cnv_db=s" => \$cnv_db,
 );
 
 #die $guide if ((@ARGV == 0 || defined $help) && !defined $fastqc_help && !defined $fastp_help && !defined $backtrack_help && !defined $mem_help && !defined $mem2_help && !defined $fusion_help);
@@ -214,7 +219,14 @@ foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 	}
 	# CNV detection
 	if ($step =~ /n/) {
-
+		my $cnv_name;
+		if ($target_region) {
+			$cnv_name = 'wes-cnv';
+		} else {
+			$cnv_name = 'wgs-cnv';
+		} 
+		$cnvDir="$projectDir/$cnv_name";
+		cnvkit($cnvDir, $target_region, $thread, "$projectDir/*/02.align/*.final.bam", $config->{'hg19'}, $config->{'access'}, $config->{'cnv_filter'}, $config->{'AnnotSV'}, $project, $cnv_db);
 	}
 	# Fusion gene detection
 	if ($step =~ /u/) {
@@ -268,6 +280,8 @@ paste $projectDir/*/01.filter/*.fq.stat.txt | awk '{for(i=3; i<=NF; i+=2){\$i=""
 paste $projectDir/*/02.align/*.bam.stat.txt | awk '{for(i=3; i<=NF; i+=2){\$i=""}; print \$0}' | sed "s/\\s\\+/\\t/g" > $projectDir/sample.bam.stat.xls
 cat $projectDir/sample.fq.stat.xls $projectDir/sample.bam.stat.xls | sed '7d' | sed '8,10d'> $projectDir/sample.stat.xls 
 Merge
+
+$main_shell.= "sh $cnvDir/cnv.$project.sh >$cnvDir/cnv.$project.sh.o 2>$cnvDir/cnv.$project.sh.e\n";
 
 write_shell($main_shell, "$projectDir/main.sh");
 
