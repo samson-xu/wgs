@@ -55,7 +55,7 @@ conda deactivate
 DB
 	write_shell($db_shell, "$dbDir/build_ref.sh");	
 	$cnv_db = "$dbDir/ref.cnn";
-	$cnv_shell .= "sh $dbDir/build_ref.sh >$dbDir/build_ref.sh.o 2>$dbDir/build_ref.sh.e\n";
+	$cnv_shell .= "$dbDir/build_ref.sh >$dbDir/build_ref.sh.o 2>$dbDir/build_ref.sh.e\n";
 	}
 	my $callDir = "$outDir/cnv";
 	my $call_shell=<<CALL;
@@ -84,10 +84,10 @@ do {
         $cnv_soft call -t=-1.1,-0.4,0.3,0.7 $callDir/\$prefix.cns.seg --ploidy 2 -o $callDir/\$prefix.cns.call
         $filter $callDir/sample.sex.txt $callDir/\$prefix.cns.call > $callDir/\$prefix.cnv.bed
         awk '{print \$0\"\\t\"\$3-\$2}' $callDir/\$prefix.cnv.bed > $callDir/\$prefix.cnv.size
-        mkdir -p \$prefix
+        mkdir -p \$dir/\$prefix
         $annot -SVinputFile $callDir/\$prefix.cnv.bed -svtBEDcol 5 -outputFile $callDir/\$prefix/\$prefix.cnv.annot
-        mv \$prefix/*.tsv $callDir
-        rm -rf \$prefix
+        mv \$dir/\$prefix/*.tsv $callDir
+        rm -rf \$dir/\$prefix
         sed -i '1s/SV length\\s*SV type/SV length\\tCopy number\\tSV type/' $callDir/\$prefix.cnv.annot.tsv
 }&
 done
@@ -98,7 +98,7 @@ conda deactivate
 
 CALL
 	write_shell($call_shell, "$callDir/cnvkit.sh");	
-	$cnv_shell .= "sh $callDir/cnvkit.sh >$callDir/cnvkit.sh.o 2>$callDir/cnvkit.sh.e\n";
+	$cnv_shell .= "$callDir/cnvkit.sh >$callDir/cnvkit.sh.o 2>$callDir/cnvkit.sh.e\n";
 	write_shell($cnv_shell, "$outDir/cnv.$flag.sh");
 	
 }

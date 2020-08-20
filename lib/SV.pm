@@ -36,8 +36,8 @@ RBED
 	}
 	$region = "$outDir/region.bed";
 	$manta_shell.=<<MANTA;
-$bgzip $region
-$tabix $region.gz
+$bgzip -f $region
+$tabix -f $region.gz
 # manta shell
 $manta \\
 --bam $bam \\

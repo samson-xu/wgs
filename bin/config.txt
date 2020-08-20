@@ -30,6 +30,13 @@ tabix	/data/bioit/biodata/xuxy/pipeline/wgs/soft/manta-1.6.0-install/libexec/tab
 manta	/data/bioit/biodata/xuxy/pipeline/wgs/soft/manta-1.6.0-install/bin/configManta.py
 convertInversion	/data/bioit/biodata/xuxy/pipeline/wgs/soft/manta-1.6.0-install/libexec/convertInversion.py
 AnnotSV	/data/bioit/biodata/xuxy/pipeline/wgs/soft/AnnotSV/bin/AnnotSV
-#conda install cnvkit-0.9.6
+#conda create -n cnvkit-0.9.6 cnvkit=0.9.6
 cnv_filter	/data/bioit/biodata/xuxy/pipeline/wgs/lib/cnv_filter.v1.3.pl
 access	/data/bioit/biodata/xuxy/pipeline/wgs/soft/cnvkit/db/access-5k-mappable.hg19.bed
+#mtdna config
+mtdna_annot	/data/bioit/biodata/xuxy/pipeline/wgs/soft/mtdna/annot
+mtdna_bin	/data/bioit/biodata/xuxy/pipeline/wgs/soft/mtdna/bin
+mtdna_db	/data/bioit/biodata/xuxy/pipeline/wgs/soft/mtdna/db
+#annovar
+convert2annovar	/data/bioit/biodata/xuxy/pipeline/wgs/soft/annovar/convert2annovar.pl
+table_annovar	/data/bioit/biodata/xuxy/pipeline/wgs/soft/annovar/table_annovar.pl

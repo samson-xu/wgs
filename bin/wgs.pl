@@ -21,6 +21,7 @@ use ReadsAlign;
 use VariantCall;
 use SV;
 use CNV;
+use MTdna;
 
 # File or tool path check
 my $config = path_check("$Bin/config.txt");
@@ -217,17 +218,6 @@ foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 		$wgs_shell{$sampleId} .= "\nwait\n\n";
 		$sampleInfo{$sampleId}{'variant'} = "$callDir/$sampleId.filter.vcf.gz"; 
 	}
-	# CNV detection
-	if ($step =~ /n/) {
-		my $cnv_name;
-		if ($target_region) {
-			$cnv_name = 'wes-cnv';
-		} else {
-			$cnv_name = 'wgs-cnv';
-		} 
-		$cnvDir="$projectDir/$cnv_name";
-		cnvkit($cnvDir, $target_region, $thread, "$projectDir/*/02.align/*.final.bam", $config->{'hg19'}, $config->{'access'}, $config->{'cnv_filter'}, $config->{'AnnotSV'}, $project, $cnv_db);
-	}
 	# Fusion gene detection
 	if ($step =~ /u/) {
 		my $fusionDir = "$projectDir/$sampleId/04.sv/fusion";
@@ -260,28 +250,47 @@ FUSION
 	}
 	# Mitochondrial gene mutation detection
 	if ($step =~ /m/) {
-
+		my $mtdnaDir = "$projectDir/$sampleId/05.mtdna";
+		mtdna($sampleInfo{$sampleId}{'align'}, $config->{'gatk'}, $config->{'bwa'}, $thread, $config->{'mtdna_annot'}, $config->{'mtdna_bin'}, $config->{'mtdna_db'}, $mtdnaDir, $config->{'convert2annovar'}, $config->{'table_annovar'});
+		$wgs_shell{$sampleId} .= "bash $mtdnaDir/$sampleId.mtdna.sh >$mtdnaDir/$sampleId.mtdna.sh.o 2>$mtdnaDir/$sampleId.mtdna.sh.e\n";
+		$sampleInfo{$sampleId}{'mtdna'} = ""; 
 	}
 	# Statistics of variation detection results
 	if ($step =~ /t/) {
 
 	}
-}	
+}
+
+# CNV detection
+if ($step =~ /n/) {
+	my $cnv_name;
+	if ($target_region) {
+		$cnv_name = 'wes-cnv';
+	} else {
+		$cnv_name = 'wgs-cnv';
+	} 
+	$cnvDir="$projectDir/$cnv_name";
+	cnvkit($cnvDir, $target_region, $thread, "$projectDir/*/02.align/*.final.bam", $config->{'hg19'}, $config->{'access'}, $config->{'cnv_filter'}, $config->{'AnnotSV'}, $project, $cnv_db);
+}
 
 $main_shell = "# Run wgs pipeline for all samples\n";
 
-foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
-	write_shell($wgs_shell{$sampleId}, "$projectDir/$sampleId/$sampleId.sh");
-	$main_shell .= "sh $projectDir/$sampleId/$sampleId.sh >$projectDir/$sampleId/$sampleId.sh.o 2>$projectDir/$sampleId/$sampleId.sh.e\n";
+if ($step =~ /c|f|b|v|u|s|m/) {
+	foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
+		write_shell($wgs_shell{$sampleId}, "$projectDir/$sampleId/$sampleId.sh");
+		$main_shell .= "sh $projectDir/$sampleId/$sampleId.sh >$projectDir/$sampleId/$sampleId.sh.o 2>$projectDir/$sampleId/$sampleId.sh.e\n";
+	}
 }
 
-$main_shell.=<<Merge;
+if ($step =~ /b/) { 
+	$main_shell.=<<Merge;
 paste $projectDir/*/01.filter/*.fq.stat.txt | awk '{for(i=3; i<=NF; i+=2){\$i=""}; print \$0}' | sed "s/\\s\\+/\\t/g" > $projectDir/sample.fq.stat.xls
 paste $projectDir/*/02.align/*.bam.stat.txt | awk '{for(i=3; i<=NF; i+=2){\$i=""}; print \$0}' | sed "s/\\s\\+/\\t/g" > $projectDir/sample.bam.stat.xls
 cat $projectDir/sample.fq.stat.xls $projectDir/sample.bam.stat.xls | sed '7d' | sed '8,10d'> $projectDir/sample.stat.xls 
 Merge
+}
 
-$main_shell.= "sh $cnvDir/cnv.$project.sh >$cnvDir/cnv.$project.sh.o 2>$cnvDir/cnv.$project.sh.e\n";
+$main_shell.= "sh $cnvDir/cnv.$project.sh >$cnvDir/cnv.$project.sh.o 2>$cnvDir/cnv.$project.sh.e\n" if ($step =~ /n/);
 
 write_shell($main_shell, "$projectDir/main.sh");
 
