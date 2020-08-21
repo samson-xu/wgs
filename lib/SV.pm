@@ -30,7 +30,7 @@ sub manta {
 grep "^\@SQ" /data/bioit/biodata/xuxy/pipeline/wgs/db/hg19.dict | cut -f 2,3 -d ":" | sed 's/LN://' | awk '{if(length(\$1) < 6) print \$1"\\t0\\t"\$2}' > $outDir/region.bed
 RBED
 	} else {
-		$manta_shell="cp $region $outDir/region.bed";
+		$manta_shell="cp $region $outDir/region.bed\n";
 		$target_flag = '--exome';
 
 	}

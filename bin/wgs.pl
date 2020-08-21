@@ -234,6 +234,8 @@ $config->{'fusion'} \\
 $sampleInfo{$sampleId}{'align'} \\
 $config->{'interGene'} \\
 $config->{'2bit'} $target_region
+
+rm $fusionDir/*blast*
 FUSION
 		write_shell($fusion_shell, "$fusionDir/$sampleId.fusion.sh");
 		$wgs_shell{$sampleId} .= "sh $fusionDir/$sampleId.fusion.sh >$fusionDir/$sampleId.fusion.sh.o 2>$fusionDir/$sampleId.fusion.sh.e\n";
