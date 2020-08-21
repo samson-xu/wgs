@@ -49,27 +49,33 @@ RevertSam \\
 --SORT_ORDER queryname \\
 --RESTORE_ORIGINAL_QUALITIES false
 
+rm $outDir/$prefix.subset.*
+
 $mt_align
 
 $shift_align
 
-# Collect coverage metrics
-$gatk --java-options -Xms2000m \\
-CollectWgsMetrics \\
---INPUT $outDir/$prefix.chrM.normal.bam \\
---VALIDATION_STRINGENCY SILENT \\
---REFERENCE_SEQUENCE $dbDir/Homo_sapiens_assembly38.chrM.fasta \\
---OUTPUT $outDir/metrics.txt \\
---USE_FAST_ALGORITHM true \\
---READ_LENGTH 151 \\
---COVERAGE_CAP 100000 \\
---INCLUDE_BQ_HISTOGRAM true \\
---THEORETICAL_SENSITIVITY_OUTPUT $outDir/theoretical_sensitivity.txt
+wait
 
-R --vanilla <<CODE
-df = read.table("$outDir/metrics.txt",skip=6,header=TRUE,stringsAsFactors=FALSE,sep='\t',nrows=1)
-write.table(floor(df[,"MEAN_COVERAGE"]), "$outDir/mean_coverage.txt", quote=F, col.names=F, row.names=F)
-CODE
+rm $outDir/$prefix.chrM.unmapped.bam  $outDir/$prefix.chrM.*.merge.bam $outDir/$prefix.chrM.*.mark.bam *.metrics 
+
+# Collect coverage metrics
+#$gatk --java-options -Xms2000m \\
+#CollectWgsMetrics \\
+#--INPUT $outDir/$prefix.chrM.normal.bam \\
+#--VALIDATION_STRINGENCY SILENT \\
+#--REFERENCE_SEQUENCE $dbDir/Homo_sapiens_assembly38.chrM.fasta \\
+#--OUTPUT $outDir/metrics.txt \\
+#--USE_FAST_ALGORITHM true \\
+#--READ_LENGTH 151 \\
+#--COVERAGE_CAP 100000 \\
+#--INCLUDE_BQ_HISTOGRAM true \\
+#--THEORETICAL_SENSITIVITY_OUTPUT $outDir/theoretical_sensitivity.txt
+#
+#R --vanilla <<CODE
+#df = read.table("$outDir/metrics.txt",skip=6,header=TRUE,stringsAsFactors=FALSE,sep='\t',nrows=1)
+#write.table(floor(df[,"MEAN_COVERAGE"]), "$outDir/mean_coverage.txt", quote=F, col.names=F, row.names=F)
+#CODE
 
 #Uses Haplochecker to estimate levels of contamination in mitochondria
 java -jar $binDir/mitolib-0.1.2.jar haplochecker \\
@@ -96,6 +102,10 @@ java -jar $binDir/mitolib-0.1.2.jar haplochecker \\
 $mt_call
 
 $shift_call 
+
+wait
+
+rm $outDir/*.log
 
 # Lifts over shifted vcf of control region and combines it with the rest of the chrM calls
 $gatk LiftoverVcf \\
@@ -133,12 +143,15 @@ $gatk VariantFiltration -V $outDir/$prefix.chrM.merge.filtered.vcf \\
 --mask $dbDir/blacklist_sites.hg38.chrM.bed \\
 --mask-name "blacklisted_site"
 
+rm $outDir/$prefix.chrM.merge.* $outDir/$prefix.chrM.shift* $outDir/$prefix.chrM.normal*vcf* $outDir/*.stats
+rm -rf haplochecker_out/
+
 # Annotation for SNP and INDEL variant on mitochondria
 grep -v "#" $outDir/$prefix.chrM.final.vcf | grep -v -E 'blacklisted_site|weak_evidence' > $outDir/$prefix.chrM.final.filter.vcf
 $convert2annovar --format vcf4 $outDir/$prefix.chrM.final.filter.vcf > $outDir/$prefix.chrM.final.filter.av
 $table_annovar --buildver hg19 --remove --protocol ensGene,mitomap20190903,mitimpact3 --operation g,f,f --nastring . $outDir/$prefix.chrM.final.filter.av $annotDir --outfile $outDir/$prefix.chrM.final
 $binDir/add_AF.pl $outDir/$prefix.chrM.final.filter.vcf $outDir/$prefix.chrM.final.hg19_multianno.txt > $outDir/$prefix.chrM.final.result.xls
-
+rm $outDir/$prefix.chrM.final.filter.vcf $outDir/$prefix.chrM.final.filter.av $outDir/$prefix.chrM.final.hg19_multianno.txt
 MT
 
 	write_shell($mtdna_shell, "$outDir/$prefix.mtdna.sh");
@@ -188,8 +201,8 @@ MergeBamAlignment \\
 --UNMAPPED_READ_STRATEGY COPY_TO_TAG \\
 --ALIGNER_PROPER_PAIR_FLAGS true \\
 --UNMAP_CONTAMINANT_READS true \\
---ADD_PG_TAG_TO_READS false
-
+--ADD_PG_TAG_TO_READS false \\
+&& \\
 $gatk --java-options -Xms4000m \\
 MarkDuplicates \\
 --INPUT $outDir/$prefix.merge.bam \\
@@ -199,15 +212,15 @@ MarkDuplicates \\
 --OPTICAL_DUPLICATE_PIXEL_DISTANCE 2500 \\
 --ASSUME_SORT_ORDER queryname \\
 --CLEAR_DT false \\
---ADD_PG_TAG_TO_READS false
-
+--ADD_PG_TAG_TO_READS false \\
+&& \\
 $gatk --java-options -Xms4000m \\
 SortSam \\
 --INPUT $outDir/$prefix.mark.bam \\
 --OUTPUT $outDir/$prefix.bam \\
 --SORT_ORDER coordinate \\
 --CREATE_INDEX true \\
---MAX_RECORDS_IN_RAM 300000
+--MAX_RECORDS_IN_RAM 300000 &
 ALIGN
 	return $align_shell;
 }
@@ -230,7 +243,7 @@ $region \\
 --annotation StrandBiasBySample \\
 --mitochondria-mode true \\
 --max-reads-per-alignment-start 75 \\
---max-mnp-distance 0
+--max-mnp-distance 0 &
 MUTECT
 	return $mutect2_shell;
 
