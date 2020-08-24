@@ -19,9 +19,11 @@ use SampleStat;
 use WriteShell;
 use ReadsAlign;
 use VariantCall;
+use Fusion;
 use SV;
 use CNV;
 use MTdna;
+use SumResult;
 
 # File or tool path check
 my $config = path_check("$Bin/config.txt");
@@ -66,7 +68,7 @@ $indent n. CNV detection.
 $indent u. Fusion gene detection.
 $indent s. SV detection.
 $indent m. Mitochondrial gene mutation detection.
-$indent t. Statistics of variation detection results
+$indent t. Statistical summary of results
 
 PARAMETER
 $indent $0 [options] sample.lst
@@ -211,7 +213,7 @@ foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 	$sampleInfo{$sampleId}{'align'} = "$projectDir/$sampleId/02.align/$sampleId.final.bam" unless ($sampleInfo{$sampleId}{'align'});
 	# SNP/InDel detection
 	if ($step =~ /v/) {
-		my $callDir = "$projectDir/$sampleId/03.variant";
+		my $callDir = "$projectDir/$sampleId/03.snp_indel";
 		call_variant($config->{'gatk'}, $sampleInfo{$sampleId}{'align'}, $ref, $config->{'dict'}, $config->{'dbsnp'}, $config->{'mills'}, $config->{'axiom'}, $config->{'hapmap'}, $config->{'omni'}, $config->{'thousand'}, $callDir, $target_region, $interval_padding);
 		$wgs_shell{$sampleId} .= "sh $callDir/$sampleId.variant.sh >$callDir/$sampleId.variant.sh.o 2>$callDir/$sampleId.variant.sh.e &\n";
 		$wgs_shell{$sampleId} .= "perl -I '$Bin/../lib' -MBamQc -e \"bam_qc('$sampleInfo{$sampleId}{'align'}', '$config->{'samtools'}', '$target_region', '$config->{'bedtools'}', $thread)\" &\n";
@@ -221,25 +223,11 @@ foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 	# Fusion gene detection
 	if ($step =~ /u/) {
 		my $fusionDir = "$projectDir/$sampleId/04.sv/fusion";
-		my $fusion_shell=<<FUSION;
-# Fusion detect
-$config->{'fusion'} \\
--o $fusionDir \\
--A $config->{'samtools'} \\
--T $config->{'twoBitToFa'} \\
--B $config->{'blastn'} \\
--M $config->{'makeblastdb'} \\
--p $thread \\
--F $fusion_arg \\
-$sampleInfo{$sampleId}{'align'} \\
-$config->{'interGene'} \\
-$config->{'2bit'} $target_region
-
-rm $fusionDir/*blast*
-FUSION
-		write_shell($fusion_shell, "$fusionDir/$sampleId.fusion.sh");
+		my $fusion_region = $config->{'dict'}; 
+		$fusion_region = $target_region if ($target_region);
+		factera($config->{'fusion'}, $fusionDir, $config->{'samtools'}, $config->{'twoBitToFa'}, $config->{'blastn'}, $config->{'makeblastdb'}, $thread, $sampleInfo{$sampleId}{'align'}, $config->{'interGene'}, $config->{'2bit'}, $fusion_region, $fusion_arg, $sampleId);
 		$wgs_shell{$sampleId} .= "sh $fusionDir/$sampleId.fusion.sh >$fusionDir/$sampleId.fusion.sh.o 2>$fusionDir/$sampleId.fusion.sh.e\n";
-		$sampleInfo{$sampleId}{'fusion'} = "$fusionDir/$sampleId.fusions.txt";
+		$sampleInfo{$sampleId}{'fusion'} = "$fusionDir/$sampleId.fusions.xls";
 	}
 	# SV detection
 	if ($step =~ /s/) {
@@ -259,7 +247,9 @@ FUSION
 	}
 	# Statistics of variation detection results
 	if ($step =~ /t/) {
-
+		my $resultDir = "$workDir/result/$sampleId";
+		copy("$projectDir/$sampleId", $resultDir, $step, $sampleId);
+		$wgs_shell{$sampleId} .= "sh $projectDir/$sampleId/$sampleId.summary.sh >$projectDir/$sampleId/$sampleId.summary.sh.o 2>$projectDir/$sampleId/$sampleId.summary.sh.e\n";
 	}
 }
 
@@ -289,6 +279,7 @@ if ($step =~ /b/) {
 paste $projectDir/*/01.filter/*.fq.stat.txt | awk '{for(i=3; i<=NF; i+=2){\$i=""}; print \$0}' | sed "s/\\s\\+/\\t/g" > $projectDir/sample.fq.stat.xls
 paste $projectDir/*/02.align/*.bam.stat.txt | awk '{for(i=3; i<=NF; i+=2){\$i=""}; print \$0}' | sed "s/\\s\\+/\\t/g" > $projectDir/sample.bam.stat.xls
 cat $projectDir/sample.fq.stat.xls $projectDir/sample.bam.stat.xls | sed '7d' | sed '8,10d'> $projectDir/sample.stat.xls 
+cp $projectDir/sample.stat.xls $workDir/result
 Merge
 }
 
