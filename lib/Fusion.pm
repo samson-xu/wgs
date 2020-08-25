@@ -23,17 +23,16 @@ sub factera {
 	my $region = shift;
 	my $arg = shift;
 	my $sampleId = shift;
+	my $factera_shell;
 	if ($region =~ m/.dict$/) {
-	$factera_shell=<<RBED;
-
+		$factera_shell=<<RBED;
 grep "^\@SQ" $region | cut -f 2,3 -d ":" | sed 's/LN://' | awk '{if(length(\$1) < 6) print \$1"\\t0\\t"\$2}' > $outDir/region.bed
 RBED
         } else {
-                $factera_shell="cp $region $outDir/region.bed\n";
+                $factera_shell = "cp $region $outDir/region.bed\n";
         }
         $region = "$outDir/region.bed";
-
-	my $factera_shell.=<<FUSION;
+	$factera_shell.=<<FUSION;
 # Fusion detect
 $fusion \\
 -o $outDir \\
