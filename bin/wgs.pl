@@ -32,7 +32,7 @@ my $config = path_check("$Bin/config.txt");
 my ($help, $stat, $fastqc_help, $fastp_help, $backtrack_help, $mem_help, $mem2_help, $fusion_help, %wgs_shell, $main_shell, $cnvDir);
 my $project = strftime("%Y%m%d",localtime());
 my $target_region = '';
-my $interval_padding = 0;
+my $interval_padding = 200;
 my $workDir = $ENV{'PWD'};
 my $ref = $config->{'hg19'};
 my $step = 'cfbvnusmt';
