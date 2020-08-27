@@ -41,12 +41,12 @@ sub bam_qc {
 	system(">$outDir/$sampleId.chr.stat.txt") == 0 || die $!;
 	foreach my $part (@all_chr_with_unmapped) {
 		$pm->start and next;
-		chr_stat($bam, $part, $samtools);	
+		chr_map_stat($bam, $part, $samtools);	
 		$pm->finish;	
 	}
 	$pm->wait_all_children;
 	print "Finished all chrs mapping stat!\n";
-	%bam_info = %{summary_bam("$outDir/$sampleId.chr.stat.txt")};
+	%bam_info = %{summary_map("$outDir/$sampleId.chr.stat.txt")};
 	if ($target) {
 		my $flank_shell=<<FLANK;
 awk '{print \$1"\\t"\$2-$interval_padding"\\t"\$2-1"\\n"\$1"\\t"\$3+1"\\t"\$3+$interval_padding}' $target | sort -k 1,1 -k 2,2n  > $outDir/near.bed
@@ -74,8 +74,9 @@ FLANK
 		system("rm -rf $outDir/flank.bed $outDir/split_region") == 0 || die $!;
 		my $map_rate = sprintf("%.2f\%", $bam_info{'map'}/$bam_info{'reads'}*100);
 		my $dup_rate = sprintf("%.2f\%", $bam_info{'dup'}/$bam_info{'reads'}*100);
-		my $target_sequence_rate = sprintf("%.2f\%", $depth_info{'target'}{'sequences'}/$bam_info{'bases'}*100); 
-		my $flank_sequence_rate = sprintf("%.2f\%", $depth_info{'flank'}{'sequences'}/$bam_info{'bases'}*100); 
+		my $capture_rate = sprintf("%.2f\%", $depth_info{'target'}{'reads'}/$bam_info{'map'}*100);
+		my $target_sequence_rate = sprintf("%.2f\%", $depth_info{'target'}{'sequences'}/$bam_info{'effective_bases'}*100); 
+		my $flank_sequence_rate = sprintf("%.2f\%", $depth_info{'flank'}{'sequences'}/$bam_info{'effective_bases'}*100); 
 		my $ave_target_depth = sprintf("%.2f", $depth_info{'target'}{'sequences'}/$depth_info{'target'}{'bases'});
 		my $ave_flank_depth = sprintf("%.2f", $depth_info{'flank'}{'sequences'}/$depth_info{'flank'}{'bases'});
 		my $target_cov_rate = sprintf("%.2f\%", $depth_info{'target'}{'cov'}/$depth_info{'target'}{'bases'}*100); 
@@ -90,7 +91,12 @@ FLANK
 Sample\t$sampleId
 Reads_number\t$bam_info{'reads'}
 Bases_number\t$bam_info{'bases'}
-Mapping_rate\t$map_rate
+Total_effective_data_yield\t$bam_info{'effective_bases'}
+Reads_mapped_genome\t$bam_info{'map'}
+Reads_mapping_genome_rate\t$map_rate
+Reads_mapped_target\t$depth_info{'target'}{'reads'}
+Capture_rate\t$capture_rate
+Reads_mapped_flank\t$depth_info{'flank'}{'reads'}
 Duplication_rate\t$dup_rate
 Target_bases\t$depth_info{'target'}{'bases'}
 Flank_bases\t$depth_info{'flank'}{'bases'}
@@ -124,7 +130,7 @@ OUTPUT
 		%depth_info = %{summary_depth("$outDir/$sampleId.chr.depth.txt")};
 		my $map_rate = sprintf("%.2f\%", $bam_info{'map'}/$bam_info{'reads'}*100);
 		my $dup_rate = sprintf("%.2f\%", $bam_info{'dup'}/$bam_info{'reads'}*100);
-		my $genome_sequence_rate = sprintf("%.2f", $depth_info{$sampleId}{'sequences'}/$bam_info{'bases'}*100); 
+		my $genome_sequence_rate = sprintf("%.2f", $depth_info{$sampleId}{'sequences'}/$bam_info{'effective_bases'}*100); 
 		my $ave_genome_depth = sprintf("%.2f", $depth_info{$sampleId}{'sequences'}/$depth_info{$sampleId}{'bases'});
 		my $genome_cov_rate = sprintf("%.2f\%", $depth_info{$sampleId}{'cov'}/$depth_info{$sampleId}{'bases'}*100); 
 		my $genome_10x_rate = sprintf("%.2f\%", $depth_info{$sampleId}{'x10'}/$depth_info{$sampleId}{'bases'}*100);
@@ -134,7 +140,9 @@ OUTPUT
 Sample\t$sampleId
 Reads_number\t$bam_info{'reads'}
 Bases_number\t$bam_info{'bases'}
-Mapping_rate\t$map_rate
+Total_effective_data_yield\t$bam_info{'effective_bases'}
+Reads_mapped_genome\t$bam_info{'map'}
+Reads_mapping_genome_rate\t$map_rate
 Duplication_rate\t$dup_rate
 Genome_bases\t$depth_info{$sampleId}{'bases'}
 Average_sequencing_depth_on_genome\t$ave_genome_depth
@@ -189,6 +197,7 @@ sub chr_depth {
 	my $x10 = 0;
 	my $x20 = 0;
 	my $x30 = 0;
+	my $reads = 0;
 	my ($prefix, $chr);
 	if (-e $target) {
 		my @arr = split(/\./, basename($target));
@@ -196,10 +205,12 @@ sub chr_depth {
 		$prefix = 'target' if ($prefix ne 'flank');
 		$chr = $arr[-2];
 		open IN, "$samtools depth -a -d 0 -b $target $bam |" or die $!;
+		open SR, "$samtools view -L $target -F 4 $bam |" or die $!;
 	} else {
 		$prefix = $sampleId;
 		$chr = $target;
 		open IN, "$samtools depth -a -d 0 -r $chr $bam |" or die $!;
+		open SR, "$samtools view -F 4 $bam $chr |" or die $!;
 	}
 	while (<IN>) {
 		my @arr = split /\t/;
@@ -211,8 +222,13 @@ sub chr_depth {
 		$sequences += $arr[2];
 	}
 	close IN;
+
+	while (<SR>) {
+		$reads++;	
+	}
+	close SR;
 	open STAT, ">>$outDir/$sampleId.chr.depth.txt" or die $!;
-	print STAT "$prefix\t$chr\t$bases\t$cov\t$x10\t$x20\t$x30\t$sequences\n";
+	print STAT "$prefix\t$chr\t$bases\t$cov\t$x10\t$x20\t$x30\t$sequences\t$reads\n";
 	close STAT;
 }
 
@@ -228,6 +244,7 @@ sub summary_depth {
 		$info{$arr[0]}{'x20'} += $arr[5];
 		$info{$arr[0]}{'x30'} += $arr[6];
 		$info{$arr[0]}{'sequences'} += $arr[7];
+		$info{$arr[0]}{'reads'} += $arr[8];
 	} 
 	close IN;
 	return \%info;
@@ -249,7 +266,7 @@ sub bam_stat {
 	return \%info;
 }
 
-sub chr_stat {
+sub chr_map_stat {
 	$bam = shift;
 	$chr = shift;
 	$samtools = shift;
@@ -261,6 +278,7 @@ sub chr_stat {
 	my $bases = 0;
 	my $map = 0;
 	my $dup = 0;
+	my $effective_bases = 0;
 	if ($chr ne 'unmapped') {
 		open BAM, "$samtools view $bam $chr |" or die $!;
 	} else {
@@ -276,15 +294,20 @@ sub chr_stat {
 			$bases += length($arr[9]);
 			$map++ unless ($arr[1] & 4);
 			$dup++ if ($arr[1] & 1024);
+			unless ($arr[1] & 4) {
+				unless ($arr[1] & 1024) {
+					$effective_bases += length($arr[9]);
+				}
+			}
 		}
 	}
 	close BAM;	
 	open OUT, ">>$outDir/$sampleId.chr.stat.txt" or die $!;
-	print OUT "$chr\t$reads\t$bases\t$map\t$dup\n";
+	print OUT "$chr\t$reads\t$bases\t$map\t$dup\t$effective_bases\n";
 	close OUT;
 }
 
-sub summary_bam {
+sub summary_map {
 	my $file = shift;
 	my %info;
 	open IN, $file or die $!;
@@ -294,6 +317,7 @@ sub summary_bam {
 		$info{'bases'} += $arr[2];
 		$info{'map'} += $arr[3];
 		$info{'dup'} += $arr[4];
+		$info{'effective_bases'} += $arr[5];
 	} 
 	close IN;
 	return \%info;
