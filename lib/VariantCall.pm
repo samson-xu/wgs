@@ -33,9 +33,9 @@ sub call_variant {
 	$gvcf_shell = "# HaplotypeCaller per-sample in GVCF mode\n";
 	my @intervals;
 	if ($target) {
-		@intervals = @{scatter_chr($target, "$outDir/split_bed")};
+		@intervals = @{scatter_normal_chr($target, "$outDir/split_bed")};
 	} else {
-		@intervals = @{scatter_chr($dict)};
+		@intervals = @{scatter_normal_chr($dict)};
 	}
 	my ($groups_gvcf, $group_gvcf_file);
 	foreach my $interval (@intervals) {
@@ -76,6 +76,7 @@ sh $outDir/$prefix.gvcf.sh >$outDir/$prefix.gvcf.sh.o 2>$outDir/$prefix.gvcf.sh.
 sh $outDir/$prefix.import.sh >$outDir/$prefix.import.sh.o 2>$outDir/$prefix.import.sh.e 
 sh $outDir/$prefix.genotype.sh >$outDir/$prefix.genotype.sh.o 2>$outDir/$prefix.genotype.sh.e
 sh $outDir/$prefix.vcf_filter.sh >$outDir/$prefix.vcf_filter.sh.o 2>$outDir/$prefix.vcf_filter.sh.e 
+rm -rf $outDir/split_bed
 SHELL
 	write_shell($shell, "$outDir/$prefix.variant.sh");
 

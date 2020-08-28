@@ -5,7 +5,7 @@ use POSIX;
 
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw(scatter_chr);
+our @EXPORT = qw(scatter_chr scatter_normal_chr);
 
 sub scatter_chr {
 	my $file = shift;
@@ -54,7 +54,7 @@ sub scatter_chr {
 		}
 		close F;
 		system("mkdir -p $outDir") == 0 || die $!;
-		foreach my $chr (@chrs) {
+		foreach my $chr (keys %chr_region) {
 			open OUT, ">$outDir/$chr.bed" or die $!; 
 			print OUT $chr_region{$chr};
 			close OUT;
@@ -73,6 +73,50 @@ sub scatter_chr {
 				$tmp_size = $chr_size{$chrs[$i]};
 			}
 			push @intervals, $tmp_interval if ($i == @chrs - 1);
+		}
+	}
+	return \@intervals;
+}
+
+sub scatter_normal_chr {
+	my $file = shift;
+	my $outDir = shift;
+	my @intervals;
+	if ($file =~ /dict$/) {
+		my @chrs;
+		open D, $file or die $!;
+		while (<D>) {
+			next unless (/^\@SQ/);
+			my @arr = split /\t/;
+			$arr[1] =~ s/^SN://;
+			$arr[2] =~ s/^LN://;
+			next if ($arr[2] < 20000000);
+			push @chrs, $arr[1];
+		}
+		close D;
+		foreach my $chr (@chrs) {
+			push @intervals, "-L $chr";
+		}
+	} else {
+		my @chrs = map {"chr$_"} (1..22, 'X', 'Y');
+		my %chr_region;
+		open F, $file or die $!;
+		while (<F>) {
+			next if (/#/);	
+			next if (/^\s*$/);
+			chomp;
+			my @arr = split /\s+/;
+			$chr_region{$arr[0]} .= "$_\n";
+		}
+		close F;
+		system("mkdir -p $outDir") == 0 || die $!;
+		foreach my $chr (keys %chr_region) {
+			open OUT, ">$outDir/$chr.bed" or die $!; 
+			print OUT $chr_region{$chr};
+			close OUT;
+		}
+		foreach my $chr (@chrs) {
+			push @intervals, "-L $outDir/$chr.bed" if (-e "$outDir/$chr.bed");
 		}
 	}
 	return \@intervals;
