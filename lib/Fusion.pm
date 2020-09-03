@@ -48,7 +48,7 @@ $bit $region
        
 mv $outDir/$sampleId.final.factera.fusions.txt $outDir/$sampleId.final.factera.fusions.xls
        
-rm $outDir/*blast*
+rm $outDir/*blast* $outDir/region.bed $outDir/*discordantpair*
 FUSION
 
 	write_shell($factera_shell, "$outDir/$sampleId.fusion.sh");

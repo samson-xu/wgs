@@ -30,17 +30,18 @@ my $config = path_check("$Bin/config.txt");
 
 # Global variable
 my ($help, $stat, $fastqc_help, $fastp_help, $backtrack_help, $mem_help, $mem2_help, $fusion_help, %wgs_shell, $main_shell, $cnvDir);
-my $project = strftime("%Y%m%d",localtime());
+my $project = strftime("%Y%m%d-%H%M%S",localtime());
 my $target_region = '';
 my $interval_padding = 100;
 my $workDir = $ENV{'PWD'};
 my $ref = $config->{'hg19'};
 my $step = 'cfbvnusmt';
 my $thread = '35';
+my $run = 'no';
 my $fastqc_arg = '';
 my $fastp_arg = "--detect_adapter_for_pe -q 15 -u 40 -n 5 -l 50 -w $thread -d 3";
 my $clean_fastq_split = 3;
-my $align_way = 'mem2';
+my $align_way = 'mem';
 my $align_arg = '';
 my $fusion_arg = '';
 my $cnv_db = "";
@@ -81,6 +82,7 @@ $indent --interval_padding <i>        Amount of padding (in bp) to add to each i
 $indent --workDir <str>               Work directory, default "$workDir"
 $indent --ref <str>                   Reference genome absolute path, default "$ref"
 $indent --step <str>                  Set step for run, default "$step"
+$indent --run <str>                   whether run pipeline, yes or no, default "$run"
 $indent --thread <i>                  Set the number of threads for the program to run, default "$thread"
 $indent --stat                        Wether stat sample information, default not stat
 $parameter_separator Filter $parameter_separator 
@@ -119,6 +121,7 @@ GetOptions(
 	"ref=s" => \$ref,
 	"step=s" => \$step,
 	"thread=i" => \$thread,
+	"run=s" => \$run,
 	"stat" => \$stat,
 	"fastqc_help" => \$fastqc_help,
 	"fastqc_arg=s" => \$fastqc_arg,
@@ -148,7 +151,7 @@ die $guide if (@ARGV == 0 || defined $help);
 $fastp_arg .= " --split $clean_fastq_split" if ($clean_fastq_split and $clean_fastq_split >=2);
 
 # Main
-my $projectDir = "$workDir/$project";
+my $projectDir = "$workDir/.$project";
 my $sample_file = shift;
 system("mkdir -p $projectDir") == 0 || die $!;
 system("cp $sample_file $projectDir") == 0 || die $!;
@@ -262,7 +265,7 @@ if ($step =~ /n/) {
 		$cnv_name = 'wgs-cnv';
 	} 
 	$cnvDir="$projectDir/$cnv_name";
-	cnvkit($cnvDir, $target_region, $thread, "$projectDir/*/02.align/*.final.bam", $config->{'hg19'}, $config->{'access'}, $config->{'cnv_filter'}, $config->{'AnnotSV'}, $project, $cnv_db);
+	cnvkit($cnvDir, $target_region, $thread, "$projectDir/*/02.align/*.final.bam", $config->{'hg19'}, $config->{'access'}, $config->{'cnv_filter'}, $config->{'AnnotSV'}, $cnv_db);
 }
 
 $main_shell = "# Run wgs pipeline for all samples\n";
@@ -283,8 +286,11 @@ cp $projectDir/sample.stat.xls $workDir/result
 Merge
 }
 
-$main_shell.= "sh $cnvDir/cnv.$project.sh >$cnvDir/cnv.$project.sh.o 2>$cnvDir/cnv.$project.sh.e\n" if ($step =~ /n/);
+$main_shell .= "sh $cnvDir/cnv.sh >$cnvDir/cnv.sh.o 2>$cnvDir/cnv.sh.e\n" if ($step =~ /n/);
+$main_shell .= "rm $projectDir/*/01.filter/*.gz\n" if ($step =~ /f/);
 
 write_shell($main_shell, "$projectDir/main.sh");
 
 stat_log($sample_total, $Bin) if (defined $stat);
+
+system("nohup sh $projectDir/main.sh >$projectDir/main.sh.o 2>$projectDir/main.sh.e &") == 0 || die $! if ($run =~ m/y/i);

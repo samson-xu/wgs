@@ -50,6 +50,8 @@ $convertInversion $samtools $ref $outDir/results/variants/diploidSV.vcf.gz > $ou
 
 $AnnotSV -SVminSize 10 -SVinputFile $outDir/$prefix.sv.vcf -outputFile $outDir/$prefix.sv.annot
 
+rm -rf $outDir/region* $outDir/workspace $outDir/run* 
+
 MANTA
 
 	write_shell($manta_shell, "$outDir/$prefix.manta.sh");

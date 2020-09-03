@@ -17,7 +17,6 @@ sub cnvkit {
 	my $access = shift;
 	my $filter = shift;
 	my $annot = shift;
-	my $flag = shift;
 	my $cnv_db = shift;
 	my $method;
 	if ($target) {
@@ -101,6 +100,6 @@ conda deactivate
 CALL
 	write_shell($call_shell, "$callDir/cnvkit.sh");	
 	$cnv_shell .= "$callDir/cnvkit.sh >$callDir/cnvkit.sh.o 2>$callDir/cnvkit.sh.e\n";
-	write_shell($cnv_shell, "$outDir/cnv.$flag.sh");
+	write_shell($cnv_shell, "$outDir/cnv.sh");
 	
 }

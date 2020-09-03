@@ -152,6 +152,7 @@ $convert2annovar --format vcf4 $outDir/$prefix.chrM.final.filter.vcf > $outDir/$
 $table_annovar --buildver hg19 --remove --protocol ensGene,mitomap20190903,mitimpact3 --operation g,f,f --nastring . $outDir/$prefix.chrM.final.filter.av $annotDir --outfile $outDir/$prefix.chrM.final
 $binDir/add_AF.pl $outDir/$prefix.chrM.final.filter.vcf $outDir/$prefix.chrM.final.hg19_multianno.txt > $outDir/$prefix.chrM.final.result.xls
 rm $outDir/$prefix.chrM.final.filter.vcf $outDir/$prefix.chrM.final.filter.av $outDir/$prefix.chrM.final.hg19_multianno.txt
+rm -rf $outDir/haplochecker_out
 MT
 
 	write_shell($mtdna_shell, "$outDir/$prefix.mtdna.sh");
