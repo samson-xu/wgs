@@ -299,7 +299,7 @@ sub chr_map_stat {
 	my $effective_bases = 0;
 	my $mismatch_bases = 0;
 	if ($chr ne 'unmapped') {
-		open BAM, "$samtools view -F 4 $bam $chr |" or die $!;
+		open BAM, "$samtools view $bam $chr |" or die $!;
 	} else {
 		open BAM, "$samtools view -f 4 $bam |" or die $!;
 	}
@@ -313,7 +313,7 @@ sub chr_map_stat {
 			$reads++;
 			$bases += length($arr[9]);
 			$map++ unless ($arr[1] & 4);
-			$uniq_map_reads++ if ($arr[4] > 0);
+			$uniq_map_reads++ if ($arr[4] > 1);
 			$dup++ if ($arr[1] & 1024);
 			unless ($arr[1] & 4) {
 				unless ($arr[1] & 1024) {
@@ -325,7 +325,8 @@ sub chr_map_stat {
 				my @md = split ":", $1;
 				my $str = $md[-1];
 				$str =~ s/\^[A|T|C|G]//gi;
-				$mismatch_bases = $str =~ tr/ATCGatcg//;
+				my $tmp_count = $str =~ tr/ATCGatcg//;
+				$mismatch_bases += $tmp_count;
 			}
 		}
 	}
