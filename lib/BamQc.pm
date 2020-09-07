@@ -73,7 +73,9 @@ FLANK
 		%depth_info = %{summary_depth("$outDir/$sampleId.chr.depth.txt")};
 		system("rm -rf $outDir/flank.bed $outDir/split_region") == 0 || die $!;
 		my $map_rate = sprintf("%.2f\%", $bam_info{'map'}/$bam_info{'reads'}*100);
+		my $uniq_rate = sprintf("%.2f\%", $bam_info{'uniq'}/$bam_info{'reads'}*100); 
 		my $dup_rate = sprintf("%.2f\%", $bam_info{'dup'}/$bam_info{'reads'}*100);
+		my $mis_rate = sprintf("%.2f\%", $bam_info{'mismatch'}/$bam_info{'bases'}*100);
 		my $capture_rate = sprintf("%.2f\%", $depth_info{'target'}{'reads'}/$bam_info{'map'}*100);
 		my $target_sequence_rate = sprintf("%.2f\%", $depth_info{'target'}{'sequences'}/$bam_info{'effective_bases'}*100); 
 		my $flank_sequence_rate = sprintf("%.2f\%", $depth_info{'flank'}{'sequences'}/$bam_info{'effective_bases'}*100); 
@@ -95,11 +97,13 @@ Reads_number\t$bam_info{'reads'}
 Bases_number\t$bam_info{'bases'}
 Total_effective_bases\t$bam_info{'effective_bases'}
 Reads_mapped_genome\t$bam_info{'map'}
-Reads_mapping_genome_rate\t$map_rate
+Reads_mapped_genome_rate\t$map_rate
 Reads_mapped_target\t$depth_info{'target'}{'reads'}
 Reads_capture_rate\t$capture_rate
 Reads_mapped_flank\t$depth_info{'flank'}{'reads'}
+Uniq_reads_mapped_genome_rate\t$uniq_rate
 Duplication_rate\t$dup_rate
+Mismatch_bases_rate\t$mis_rate
 Target_bases\t$depth_info{'target'}{'bases'}
 Flank_bases\t$depth_info{'flank'}{'bases'}
 Effective_bases_on_target\t$depth_info{'target'}{'sequences'}
@@ -133,7 +137,9 @@ OUTPUT
 		print "Finished all chrs depth stat!\n";
 		%depth_info = %{summary_depth("$outDir/$sampleId.chr.depth.txt")};
 		my $map_rate = sprintf("%.2f\%", $bam_info{'map'}/$bam_info{'reads'}*100);
+		my $uniq_rate = sprintf("%.2f\%", $bam_info{'uniq'}/$bam_info{'reads'}*100);
 		my $dup_rate = sprintf("%.2f\%", $bam_info{'dup'}/$bam_info{'reads'}*100);
+		my $mis_rate = sprintf("%.2f\%", $bam_info{'mismatch'}/$bam_info{'bases'}*100);
 		my $genome_sequence_rate = sprintf("%.2f", $depth_info{$sampleId}{'sequences'}/$bam_info{'effective_bases'}*100); 
 		my $ave_genome_depth = sprintf("%.2f", $depth_info{$sampleId}{'sequences'}/$depth_info{$sampleId}{'bases'});
 		my $genome_cov_rate = sprintf("%.2f\%", $depth_info{$sampleId}{'cov'}/$depth_info{$sampleId}{'bases'}*100); 
@@ -147,7 +153,9 @@ Reads_number\t$bam_info{'reads'}
 Bases_number\t$bam_info{'bases'}
 Total_effective_bases\t$bam_info{'effective_bases'}
 Reads_mapped_genome\t$bam_info{'map'}
-Reads_mapping_genome_rate\t$map_rate
+Reads_mapped_genome_rate\t$map_rate
+Uniq_reads_mapped_genome_rate\t$uniq_rate
+Mismatch_bases_rate\t$mis_rate
 Duplication_rate\t$dup_rate
 Genome_sizes\t$depth_info{$sampleId}{'bases'}
 Average_effective_depth_on_genome\t$ave_genome_depth
@@ -286,14 +294,17 @@ sub chr_map_stat {
 	my $reads = 0;
 	my $bases = 0;
 	my $map = 0;
+	my $uniq_map_reads = 0;
 	my $dup = 0;
 	my $effective_bases = 0;
+	my $mismatch_bases = 0;
 	if ($chr ne 'unmapped') {
-		open BAM, "$samtools view $bam $chr |" or die $!;
+		open BAM, "$samtools view -F 4 $bam $chr |" or die $!;
 	} else {
 		open BAM, "$samtools view -f 4 $bam |" or die $!;
 	}
 	while (<BAM>) {
+		my $line = $_;
 		my @arr = split /\t/;
 		if ($chr eq 'unmapped') {
 			next unless ($arr[2] eq '*');
@@ -302,17 +313,25 @@ sub chr_map_stat {
 			$reads++;
 			$bases += length($arr[9]);
 			$map++ unless ($arr[1] & 4);
+			$uniq_map_reads++ if ($arr[4] > 0);
 			$dup++ if ($arr[1] & 1024);
 			unless ($arr[1] & 4) {
 				unless ($arr[1] & 1024) {
 					$effective_bases += length($arr[9]);
 				}
 			}
+			unless ($arr[1] & 4) {
+				$line =~ m/\s+(MD\S+)\s+/;
+				my @md = split ":", $1;
+				my $str = $md[-1];
+				$str =~ s/\^[A|T|C|G]//gi;
+				$mismatch_bases = $str =~ tr/ATCGatcg//;
+			}
 		}
 	}
 	close BAM;	
 	open OUT, ">>$outDir/$sampleId.chr.stat.txt" or die $!;
-	print OUT "$chr\t$reads\t$bases\t$map\t$dup\t$effective_bases\n";
+	print OUT "$chr\t$reads\t$bases\t$map\t$uniq_map_reads\t$dup\t$effective_bases\t$mismatch_bases\n";
 	close OUT;
 }
 
@@ -325,8 +344,10 @@ sub summary_map {
 		$info{'reads'} += $arr[1];
 		$info{'bases'} += $arr[2];
 		$info{'map'} += $arr[3];
-		$info{'dup'} += $arr[4];
-		$info{'effective_bases'} += $arr[5];
+		$info{'uniq'} += $arr[4];
+		$info{'dup'} += $arr[5];
+		$info{'effective_bases'} += $arr[6];
+		$info{'mismatch'} += $arr[7];
 	} 
 	close IN;
 	return \%info;
