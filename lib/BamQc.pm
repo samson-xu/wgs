@@ -101,7 +101,7 @@ Reads_mapped_genome_rate\t$map_rate
 Reads_mapped_target\t$depth_info{'target'}{'reads'}
 Reads_capture_rate\t$capture_rate
 Reads_mapped_flank\t$depth_info{'flank'}{'reads'}
-Uniq_reads_mapped_genome_rate\t$uniq_rate
+Uniq_mapped_rate\t$uniq_rate
 Duplication_rate\t$dup_rate
 Mismatch_bases_rate\t$mis_rate
 Target_bases\t$depth_info{'target'}{'bases'}
@@ -154,7 +154,7 @@ Bases_number\t$bam_info{'bases'}
 Total_effective_bases\t$bam_info{'effective_bases'}
 Reads_mapped_genome\t$bam_info{'map'}
 Reads_mapped_genome_rate\t$map_rate
-Uniq_reads_mapped_genome_rate\t$uniq_rate
+Uniq_mapped_rate\t$uniq_rate
 Mismatch_bases_rate\t$mis_rate
 Duplication_rate\t$dup_rate
 Genome_sizes\t$depth_info{$sampleId}{'bases'}
