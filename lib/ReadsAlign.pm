@@ -14,6 +14,7 @@ sub reads_align {
 	my $samtools = shift;
 	my $gatk = shift; 
 	my $thread = shift;
+	my $prefix = shift;
 	my $fastq = shift;
 	my $ref = shift;
 	my $dict = shift;
@@ -24,8 +25,6 @@ sub reads_align {
 	my $outDir = shift;
 	my ($bwa, $merge, $mark, $bqsr, $apply, $shell, $tmp_shell);
 	my $thread_split = int($thread/$fastq->[2]);
-	my $prefix = basename($fastq->[0]);
-	$prefix =~ s/.clean.1.fq.gz//;
 	my @prefix_list;
 	if ($fastq->[2] == 1) {
 		push @prefix_list, "";

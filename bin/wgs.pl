@@ -203,7 +203,7 @@ if ($fastq_label) {
 			@{$sampleInfo{$sampleId}{'clean'}} = ($fastq->[0], $fastq->[1], 1) unless ($sampleInfo{$sampleId}{'clean'});
 			my $align_program = $config->{'mem2'};
 			$align_program = $config->{'bwa'} if ($align_way ne 'mem2');
-			reads_align($align_program, $config->{'samtools'}, $config->{'gatk'}, $thread, $sampleInfo{$sampleId}{'clean'},
+			reads_align($align_program, $config->{'samtools'}, $config->{'gatk'}, $thread, $sampleId, $sampleInfo{$sampleId}{'clean'},
                         $ref, $config->{'dict'}, $config->{'dbsnp'}, $config->{'mills'}, $align_way, $align_arg, $alignDir);
 			$wgs_shell{$sampleId} .= "sh $alignDir/$sampleId.align.sh >$alignDir/$sampleId.align.sh.o 2>$alignDir/$sampleId.align.sh.e\n";
 			$sampleInfo{$sampleId}{'align'} = "$alignDir/$sampleId.final.bam"; 
@@ -277,13 +277,25 @@ if ($step =~ /c|f|b|v|u|s|m/) {
 	}
 }
 
-if ($step =~ /b/) { 
-	$main_shell.=<<Merge;
+if ($step =~ /f/) {
+	$main_shell.=<<PSFQ;
 paste $projectDir/*/01.filter/*.fq.stat.txt | awk '{for(i=3; i<=NF; i+=2){\$i=""}; print \$0}' | sed "s/\\s\\+/\\t/g" > $projectDir/sample.fq.stat.xls
+PSFQ
+}
+
+if ($step =~ /b/) { 
+	$main_shell.=<<PSBM;
 paste $projectDir/*/02.align/*.bam.stat.txt | awk '{for(i=3; i<=NF; i+=2){\$i=""}; print \$0}' | sed "s/\\s\\+/\\t/g" > $projectDir/sample.bam.stat.xls
-cat $projectDir/sample.fq.stat.xls $projectDir/sample.bam.stat.xls | sed '7d' | sed '8,10d'> $projectDir/sample.stat.xls 
-cp $projectDir/sample.stat.xls $workDir/result
-Merge
+PSBM
+}
+
+if ($step =~ /f/ and $step =~ /b/) {
+	$main_shell .= "cat $projectDir/sample.fq.stat.xls $projectDir/sample.bam.stat.xls | sed '7d' | sed '8,10d'> $projectDir/sample.stat.xls\n";
+	$main_shell .= "cp $projectDir/sample.stat.xls $workDir/result";
+}
+
+if ($step !~ /f/ and $step =~ /b/) {
+	$main_shell .= "cp $projectDir/sample.bam.stat.xls $workDir/result";
 }
 
 $main_shell .= "sh $cnvDir/cnv.sh >$cnvDir/cnv.sh.o 2>$cnvDir/cnv.sh.e\n" if ($step =~ /n/);
