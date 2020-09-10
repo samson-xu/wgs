@@ -19,6 +19,7 @@ sub cnvkit {
 	my $annot = shift;
 	my $cnv_db = shift;
 	my $phenotype = shift;
+	my $iconv = shift;
 	my $method;
 	if ($target) {
 		$method = 'hybrid';
@@ -90,8 +91,9 @@ do {
 	rm -rf \$dir/\$prefix
 	sed -i '1s/SV length\\s*SV type/SV length\\tCopy number\\tSV type/' $callDir/\$prefix.cnv.annot.tsv
 	$phenotype/sv_hpo.pl $callDir/\$prefix.cnv.annot.tsv $phenotype/diseases_hpo.txt $phenotype/hpo_ch_info.txt > $callDir/\$prefix.cnv.annot.phenotype.tsv
+	$iconv -f utf-8 -t gb18030 $callDir/\$prefix.cnv.annot.phenotype.tsv > $callDir/\$prefix.cnv.annot.phenotype.ch.tsv
 	mkdir -p $outDir/../../result/\$sampleId
-	cp $callDir/\$prefix.cnv.annot.phenotype.tsv $outDir/../../result/\$sampleId
+	cp $callDir/\$prefix.cnv.annot.phenotype.ch.tsv $outDir/../../result/\$sampleId
 }&
 done
 wait

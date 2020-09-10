@@ -237,7 +237,7 @@ foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 		my $mantaDir = "$projectDir/$sampleId/04.sv/manta";
 		my $region = $config->{'dict'}; 
 		$region = $target_region if ($target_region);
-		manta($region, $config->{'manta'}, $config->{'convertInversion'}, $config->{'samtools'}, $config->{'AnnotSV'}, $sampleInfo{$sampleId}{'align'}, $config->{'hg19'}, $mantaDir, $thread, $config->{'bgzip'}, $config->{'tabix'}, $config->{'phenotype'});
+		manta($region, $config->{'manta'}, $config->{'convertInversion'}, $config->{'samtools'}, $config->{'AnnotSV'}, $sampleInfo{$sampleId}{'align'}, $config->{'hg19'}, $mantaDir, $thread, $config->{'bgzip'}, $config->{'tabix'}, $config->{'phenotype'}, $config->{'iconv'});
 		$wgs_shell{$sampleId} .= "sh $mantaDir/$sampleId.manta.sh >$mantaDir/$sampleId.manta.sh.o 2>$mantaDir/$sampleId.manta.sh.e\n";
 		$sampleInfo{$sampleId}{'manta'} = "$mantaDir/results/variants/diploidSV.vcf.gz"; 
 	}
@@ -265,7 +265,7 @@ if ($step =~ /n/) {
 		$cnv_name = 'wgs-cnv';
 	} 
 	$cnvDir="$projectDir/$cnv_name";
-	cnvkit($cnvDir, $target_region, $thread, "$projectDir/*/02.align/*.final.bam", $config->{'hg19'}, $config->{'access'}, $config->{'cnv_filter'}, $config->{'AnnotSV'}, $cnv_db, $config->{'phenotype'});
+	cnvkit($cnvDir, $target_region, $thread, "$projectDir/*/02.align/*.final.bam", $config->{'hg19'}, $config->{'access'}, $config->{'cnv_filter'}, $config->{'AnnotSV'}, $cnv_db, $config->{'phenotype'}, $config->{'iconv'});
 }
 
 $main_shell = "# Run wgs pipeline for all samples\n";
