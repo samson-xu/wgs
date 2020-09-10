@@ -39,7 +39,7 @@ my $step = 'cfbvnusmt';
 my $thread = '35';
 my $run = 'no';
 my $fastqc_arg = '';
-my $fastp_arg = "--detect_adapter_for_pe -q 15 -u 40 -n 5 -l 50 -w $thread -d 3";
+my $fastp_arg = "--detect_adapter_for_pe -q 15 -u 40 -n 5 -l 50 -w $thread";
 my $clean_fastq_split = 3;
 my $align_way = 'mem';
 my $align_arg = '';
@@ -148,7 +148,7 @@ if (@ARGV == 0) {
 }
 die $guide if (@ARGV == 0 || defined $help);
 
-$fastp_arg .= " --split $clean_fastq_split" if ($clean_fastq_split and $clean_fastq_split >=2);
+$fastp_arg .= " --split $clean_fastq_split -d 3" if ($clean_fastq_split and $clean_fastq_split >=2);
 
 # Main
 my $projectDir = "$workDir/.$project";
@@ -228,7 +228,7 @@ foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 		my $fusionDir = "$projectDir/$sampleId/04.sv/fusion";
 		my $fusion_region = $config->{'dict'}; 
 		$fusion_region = $target_region if ($target_region);
-		factera($config->{'fusion'}, $fusionDir, $config->{'samtools'}, $config->{'twoBitToFa'}, $config->{'blastn'}, $config->{'makeblastdb'}, $thread, $sampleInfo{$sampleId}{'align'}, $config->{'interGene'}, $config->{'2bit'}, $fusion_region, $fusion_arg, $sampleId);
+		factera($config->{'fusion'}, $fusionDir, $config->{'samtools'}, $config->{'twoBitToFa'}, $config->{'blastn'}, $config->{'makeblastdb'}, $thread, $sampleInfo{$sampleId}{'align'}, $config->{'interGene'}, $config->{'2bit'}, $config->{'phenotype'}, $fusion_region, $fusion_arg, $sampleId);
 		$wgs_shell{$sampleId} .= "sh $fusionDir/$sampleId.fusion.sh >$fusionDir/$sampleId.fusion.sh.o 2>$fusionDir/$sampleId.fusion.sh.e\n";
 		$sampleInfo{$sampleId}{'fusion'} = "$fusionDir/$sampleId.fusions.xls";
 	}
@@ -237,7 +237,7 @@ foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 		my $mantaDir = "$projectDir/$sampleId/04.sv/manta";
 		my $region = $config->{'dict'}; 
 		$region = $target_region if ($target_region);
-		manta($region, $config->{'manta'}, $config->{'convertInversion'}, $config->{'samtools'}, $config->{'AnnotSV'}, $sampleInfo{$sampleId}{'align'}, $config->{'hg19'}, $mantaDir, $thread, $config->{'bgzip'}, $config->{'tabix'});
+		manta($region, $config->{'manta'}, $config->{'convertInversion'}, $config->{'samtools'}, $config->{'AnnotSV'}, $sampleInfo{$sampleId}{'align'}, $config->{'hg19'}, $mantaDir, $thread, $config->{'bgzip'}, $config->{'tabix'}, $config->{'phenotype'});
 		$wgs_shell{$sampleId} .= "sh $mantaDir/$sampleId.manta.sh >$mantaDir/$sampleId.manta.sh.o 2>$mantaDir/$sampleId.manta.sh.e\n";
 		$sampleInfo{$sampleId}{'manta'} = "$mantaDir/results/variants/diploidSV.vcf.gz"; 
 	}
@@ -265,7 +265,7 @@ if ($step =~ /n/) {
 		$cnv_name = 'wgs-cnv';
 	} 
 	$cnvDir="$projectDir/$cnv_name";
-	cnvkit($cnvDir, $target_region, $thread, "$projectDir/*/02.align/*.final.bam", $config->{'hg19'}, $config->{'access'}, $config->{'cnv_filter'}, $config->{'AnnotSV'}, $cnv_db);
+	cnvkit($cnvDir, $target_region, $thread, "$projectDir/*/02.align/*.final.bam", $config->{'hg19'}, $config->{'access'}, $config->{'cnv_filter'}, $config->{'AnnotSV'}, $cnv_db, $config->{'phenotype'});
 }
 
 $main_shell = "# Run wgs pipeline for all samples\n";

@@ -20,6 +20,7 @@ sub factera {
 	my $bam = shift;
 	my $interGene = shift;
 	my $bit = shift;
+	my $phenotype = shift;
 	my $region = shift;
 	my $arg = shift;
 	my $sampleId = shift;
@@ -46,7 +47,7 @@ $bam \\
 $interGene \\
 $bit $region
        
-mv $outDir/$sampleId.final.factera.fusions.txt $outDir/$sampleId.final.factera.fusions.xls
+$phenotype/fusion_gene_phenotypes.pl $outDir/$sampleId.final.factera.fusions.txt $phenotype/omim_gene_phenotypes.txt > $outDir/$sampleId.final.factera.fusions.xls
        
 rm $outDir/*blast* $outDir/region.bed $outDir/*discordantpair*
 FUSION

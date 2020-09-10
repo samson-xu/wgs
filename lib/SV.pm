@@ -19,6 +19,7 @@ sub manta {
 	my $thread = shift;
 	my $bgzip = shift;
 	my $tabix = shift;
+	my $phenotype = shift;
 	my $prefix = basename($bam);
 	$prefix =~ s/.bam$//;
 	$prefix =~ s/.final$//;
@@ -49,6 +50,8 @@ $outDir/runWorkflow.py -j $thread
 $convertInversion $samtools $ref $outDir/results/variants/diploidSV.vcf.gz > $outDir/$prefix.sv.vcf
 
 $AnnotSV -SVminSize 10 -SVinputFile $outDir/$prefix.sv.vcf -outputFile $outDir/$prefix.sv.annot
+
+$phenotype/sv_hpo.pl $outDir/$prefix.sv.annot.tsv $phenotype/diseases_hpo.txt $phenotype/hpo_ch_info.txt > $outDir/$prefix.sv.annot.phenotype.tsv
 
 rm -rf $outDir/region* $outDir/workspace $outDir/run* 
 
