@@ -45,6 +45,7 @@ my $align_way = 'mem';
 my $align_arg = '';
 my $fusion_arg = '';
 my $cnv_db = "";
+my $max_mnp_distance = 0;
 
 # Guide
 my $guide_separator = "=" x 150;
@@ -97,6 +98,8 @@ $indent --backtrack_help              Print BWA-backtrack help information
 $indent --mem_help                    Print BWA-mem help information
 $indent --mem2_help                   Print BWA-mem2 help information
 $indent --align_arg                   Align argument setting, this has to correspond to the align_way, default "$align_arg"
+$parameter_separator MNP $parameter_separator 
+$indent --max_mnp_distance            Two or more phased substitutions separated by this distance or less are merged into MNPs, default $max_mnp_distance 
 $parameter_separator Fusion $parameter_separator 
 $indent --fusion_help                 Print fusion help information 
 $indent --fusion_arg                  Fusion argument setting, default "$fusion_arg"
@@ -132,6 +135,8 @@ GetOptions(
 	"backtrack_help" => \$backtrack_help,
 	"mem_help" => \$mem_help,
 	"mem2_help" => \$mem2_help,
+	"align_arg=s" => \$align_arg,
+	"max_mnp_distance=i" => \$max_mnp_distance,
 	"fusion_help" => \$fusion_help,
 	"fusion_arg=s" => \$fusion_arg,
 	"cnv_db=s" => \$cnv_db,
@@ -217,7 +222,7 @@ foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 	# SNP/InDel detection
 	if ($step =~ /v/) {
 		my $callDir = "$projectDir/$sampleId/03.snp_indel";
-		call_variant($config->{'gatk'}, $sampleInfo{$sampleId}{'align'}, $ref, $config->{'dict'}, $config->{'dbsnp'}, $config->{'mills'}, $config->{'axiom'}, $config->{'hapmap'}, $config->{'omni'}, $config->{'thousand'}, $callDir, $target_region, $interval_padding);
+		call_variant($config->{'gatk'}, $sampleInfo{$sampleId}{'align'}, $ref, $config->{'dict'}, $config->{'dbsnp'}, $config->{'mills'}, $config->{'axiom'}, $config->{'hapmap'}, $config->{'omni'}, $config->{'thousand'}, $callDir, $target_region, $interval_padding, $max_mnp_distance);
 		$wgs_shell{$sampleId} .= "sh $callDir/$sampleId.variant.sh >$callDir/$sampleId.variant.sh.o 2>$callDir/$sampleId.variant.sh.e &\n";
 		$wgs_shell{$sampleId} .= "perl -I '$Bin/../lib' -MBamQc -e \"bam_qc('$sampleInfo{$sampleId}{'align'}', '$config->{'samtools'}', '$target_region', '$config->{'bedtools'}', $thread)\" &\n";
 		$wgs_shell{$sampleId} .= "\nwait\n\n";
