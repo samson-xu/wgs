@@ -77,7 +77,7 @@ MergeGVCFs
 sh $outDir/$prefix.gvcf.sh >$outDir/$prefix.gvcf.sh.o 2>$outDir/$prefix.gvcf.sh.e
 #sh $outDir/$prefix.import.sh >$outDir/$prefix.import.sh.o 2>$outDir/$prefix.import.sh.e 
 sh $outDir/$prefix.genotype.sh >$outDir/$prefix.genotype.sh.o 2>$outDir/$prefix.genotype.sh.e
-sh $outDir/$prefix.vcf_filter.sh >$outDir/$prefix.vcf_filter.sh.o 2>$outDir/$prefix.vcf_filter.sh.e 
+#sh $outDir/$prefix.vcf_filter.sh >$outDir/$prefix.vcf_filter.sh.o 2>$outDir/$prefix.vcf_filter.sh.e 
 
 rm -rf $outDir/split_bed
 #rm $outDir/$prefix.vcf.gz*
