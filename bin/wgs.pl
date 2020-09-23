@@ -40,7 +40,7 @@ my $thread = '35';
 my $run = 'no';
 my $fastqc_arg = '';
 my $fastp_arg = "--detect_adapter_for_pe -q 15 -u 40 -n 5 -l 50 -w $thread";
-my $clean_fastq_split = 3;
+my $clean_fastq_split = 4;
 my $align_way = 'mem';
 my $align_arg = '';
 my $fusion_arg = '';
@@ -88,23 +88,23 @@ $indent --thread <i>                  Set the number of threads for the program 
 $indent --stat                        Wether stat sample information, default not stat
 $parameter_separator Filter $parameter_separator 
 $indent --fastqc_help                 Print fastqc help information
-$indent --fastqc_arg                  Fastqc argument setting, default "$fastqc_arg"
+$indent --fastqc_arg <str>            Fastqc argument setting, default "$fastqc_arg"
 $indent --fastp_help                  Print fastp help information
-$indent --fastp_arg                   Fastp argument setting, default "$fastp_arg"
-$indent --clean_fastq_split           Specifies how many parts the output fastq is divided into, default "$clean_fastq_split"
+$indent --fastp_arg <str>             Fastp argument setting, default "$fastp_arg"
+$indent --clean_fastq_split <i>       Specifies how many parts the output fastq is divided into, default "$clean_fastq_split"
 $parameter_separator Align $parameter_separator 
-$indent --align_way                   Select align algorithm, 'backtrack', 'mem' or 'mem2', default "$align_way"
+$indent --align_way <str>             Select align algorithm, 'backtrack', 'mem' or 'mem2', default "$align_way"
 $indent --backtrack_help              Print BWA-backtrack help information
 $indent --mem_help                    Print BWA-mem help information
 $indent --mem2_help                   Print BWA-mem2 help information
-$indent --align_arg                   Align argument setting, this has to correspond to the align_way, default "$align_arg"
+$indent --align_arg <str>             Align argument setting, this has to correspond to the align_way, default "$align_arg"
 $parameter_separator MNP $parameter_separator 
-$indent --max_mnp_distance            Two or more phased substitutions separated by this distance or less are merged into MNPs, default $max_mnp_distance 
+$indent --max_mnp_distance <i>        Two or more phased substitutions separated by this distance or less are merged into MNPs, default $max_mnp_distance 
 $parameter_separator Fusion $parameter_separator 
 $indent --fusion_help                 Print fusion help information 
-$indent --fusion_arg                  Fusion argument setting, default "$fusion_arg"
+$indent --fusion_arg <str>            Fusion argument setting, default "$fusion_arg"
 $parameter_separator CNV $parameter_separator 
-$indent --cnv_db                      Path for CNV DB, if not set, a new db will be generated, default "$cnv_db"
+$indent --cnv_db <str>                Path for CNV DB, if not set, a new db will be generated, default "$cnv_db"
 
 NOTE
 $indent 1. Fastq quality system should be phred 33
