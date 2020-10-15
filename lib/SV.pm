@@ -52,7 +52,7 @@ $convertInversion $samtools $ref $outDir/results/variants/diploidSV.vcf.gz > $ou
 
 $AnnotSV -SVminSize 10 -SVinputFile $outDir/$prefix.sv.vcf -outputFile $outDir/$prefix.sv.annot
 
-$phenotype/sv_hpo.pl $outDir/$prefix.sv.annot.tsv $phenotype/diseases_hpo.txt $phenotype/hpo_ch_info.txt > $outDir/$prefix.sv.annot.phenotype.tsv
+$phenotype/sv_hpo.pl $outDir/$prefix.sv.annot.tsv $phenotype/phenotype_hpo.txt $phenotype/hpo_ch_info.txt > $outDir/$prefix.sv.annot.phenotype.tsv
 
 $iconv -f utf-8 -t gb18030 $outDir/$prefix.sv.annot.phenotype.tsv > $outDir/$prefix.sv.annot.phenotype.ch.tsv
 

@@ -297,10 +297,12 @@ PSBM
 if ($step =~ /f/ and $step =~ /b/) {
 	$main_shell .= "cat $projectDir/sample.fq.stat.xls $projectDir/sample.bam.stat.xls | sed '7d' | sed '8,10d'> $projectDir/sample.stat.xls\n";
 	$main_shell .= "cp $projectDir/sample.stat.xls $workDir/result\n";
+	$main_shell .= "$Bin/../lib/qc_format.pl $workDir/result/sample.stat.xls > $workDir/result/sample.stat.report.xls\n";
 }
 
 if ($step !~ /f/ and $step =~ /b/) {
 	$main_shell .= "cp $projectDir/sample.bam.stat.xls $workDir/result\n";
+	$main_shell .= "$Bin/../lib/qc_format.pl $workDir/result/sample.stat.xls > $workDir/result/sample.stat.report.xls\n";
 }
 
 $main_shell .= "sh $cnvDir/cnv.sh >$cnvDir/cnv.sh.o 2>$cnvDir/cnv.sh.e\n" if ($step =~ /n/);
