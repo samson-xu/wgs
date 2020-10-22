@@ -110,6 +110,11 @@ NOTE
 $indent 1. Fastq quality system should be phred 33
 $indent 2. If input is fastq, sample.lst format like: SampleId    fq1    fq2, if input is bam, sample.lst format like: SampleId    bam
 $indent 3. If you specify a target it will run as the WES, otherwise it will run the WGS
+$indent 4. If you are in WGS mode, you may not be able to detect the gene fusion because that would take a long time
+
+EXAMPLE
+$indent WES: $0 --target_region Agilent_V6.bed --step cfbvnusmt --run y --clean_fastq_split 4 sample.lst
+$indent WGS: $0 --step cfbvnsmt --run y --clean_fastq_split 32 sample.lst
 $guide_separator
 
 INFO
@@ -156,7 +161,8 @@ die $guide if (@ARGV == 0 || defined $help);
 $fastp_arg .= " --split $clean_fastq_split -d 3" if ($clean_fastq_split and $clean_fastq_split >=2);
 
 # Main
-my $projectDir = "$workDir/.$project";
+$project = ".$project" if ($project !~ m/^\./);
+my $projectDir = "$workDir/$project";
 my $sample_file = shift;
 system("mkdir -p $projectDir") == 0 || die $!;
 system("cp $sample_file $projectDir") == 0 || die $!;
@@ -233,7 +239,7 @@ foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 		my $fusionDir = "$projectDir/$sampleId/04.sv/fusion";
 		my $fusion_region = $config->{'dict'}; 
 		$fusion_region = $target_region if ($target_region);
-		factera($config->{'fusion'}, $fusionDir, $config->{'samtools'}, $config->{'twoBitToFa'}, $config->{'blastn'}, $config->{'makeblastdb'}, $thread, $sampleInfo{$sampleId}{'align'}, $config->{'interGene'}, $config->{'2bit'}, $config->{'phenotype'}, $fusion_region, $fusion_arg, $sampleId);
+		factera($config->{'fusion'}, $fusionDir, $config->{'samtools'}, $config->{'twoBitToFa'}, $config->{'blastn'}, $config->{'makeblastdb'}, $thread, $sampleInfo{$sampleId}{'align'}, $config->{'interGene'}, $config->{'2bit'}, $config->{'phenotype'}, $config->{'iconv'}, $fusion_region, $fusion_arg, $sampleId);
 		$wgs_shell{$sampleId} .= "sh $fusionDir/$sampleId.fusion.sh >$fusionDir/$sampleId.fusion.sh.o 2>$fusionDir/$sampleId.fusion.sh.e\n";
 		$sampleInfo{$sampleId}{'fusion'} = "$fusionDir/$sampleId.fusions.xls";
 	}

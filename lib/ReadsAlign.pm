@@ -56,7 +56,7 @@ sub reads_align {
 
 		$merge=<<FastqToSam;
 # Convert FASTQ to read unmapped BAM
-$gatk FastqToSam \\
+$gatk --java-options -Xmx5g FastqToSam \\
 -F1 $fq1 \\
 -F2 $fq2 \\
 -O $outDir/$out_pre.unmapped.bam \\
@@ -68,7 +68,7 @@ $gatk FastqToSam \\
 FastqToSam
 		$merge.=<<MergeBam;
 # Merge original input uBAM file with BWA-aligned BAM file
-$gatk MergeBamAlignment \\
+$gatk --java-options -Xmx5g MergeBamAlignment \\
 --VALIDATION_STRINGENCY SILENT \\
 --EXPECTED_ORIENTATIONS FR \\
 --ATTRIBUTES_TO_RETAIN X0 \\
@@ -99,7 +99,7 @@ MergeBam
 $samtools fixmate -m --threads $thread_split $outDir/$out_pre.merge.bam $outDir/$out_pre.fix.bam && \\
 $samtools sort -l 0 -o /dev/stdout -T $outDir/$out_pre --threads $thread_split $outDir/$out_pre.fix.bam \\
 | \\
-$gatk SetNmMdAndUqTags \\
+$gatk --java-options -Xmx5g SetNmMdAndUqTags \\
 --INPUT /dev/stdin \\
 --OUTPUT $outDir/$out_pre.sortset.bam \\
 --REFERENCE_SEQUENCE $ref &
@@ -176,7 +176,7 @@ MARK
 		my $group = $arr[1];
 		$groups .= "-I $outDir/$prefix.$group.recal_data.csv \\\n";
 		$bqsr.=<<BaseRecalibrator; 
-$gatk BaseRecalibrator \\
+$gatk --java-options -Xmx5g BaseRecalibrator \\
 -R $ref \\
 -I $outDir/$prefix.markdup.sort.bam \\
 --use-original-qualities \\
@@ -204,7 +204,7 @@ GatherBQSRReports
 		my $group = $arr[1];
 		$groups_with_unmapped .= "--INPUT $outDir/$prefix.$group.recal.bam \\\n";	
 		$apply.=<<ApplyBQSR;
-$gatk ApplyBQSR \\
+$gatk --java-options -Xmx5g ApplyBQSR \\
 -R $ref \\
 -I $outDir/$prefix.markdup.sort.bam \\
 -O $outDir/$prefix.$group.recal.bam \\

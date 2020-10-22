@@ -18,7 +18,7 @@ sub copy {
 	my $copy_shell = "#script for copy result file\n";
 	$copy_shell .= "cp $inDir/03.snp_indel/$sampleId.*vcf.gz $outDir\n" if ($step =~ m/v/);
 	$copy_shell .= "cp $inDir/04.sv/manta/*.phenotype.ch.tsv $outDir\n" if ($step =~ m/s/);
-	$copy_shell .= "cp $inDir/04.sv/fusion/*.xls $outDir\n" if ($step =~ m/u/);
+	$copy_shell .= "cp $inDir/04.sv/fusion/*.ch.xls $outDir\n" if ($step =~ m/u/);
 	$copy_shell .= "cp $inDir/05.mtdna/*.xls $outDir\n" if ($step =~ m/m/);
 	#$copy_shell .= "cp $inDir/../*cnv/cnv/$sampleId*tsv $outDir\n" if ($step =~ m/n/);
 	write_shell($copy_shell, "$inDir/$sampleId.summary.sh");

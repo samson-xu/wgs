@@ -45,7 +45,8 @@ sub call_variant {
 		$groups_gvcf .= "--INPUT $outDir/$prefix.$group.g.vcf.gz \\\n";
 		$group_gvcf_file .= "$outDir/$prefix.$group.g.vcf.gz* ";
 		$gvcf_shell.=<<HaplotypeCaller;
-$gatk HaplotypeCaller \\
+$gatk --java-options -Xmx8g \\
+HaplotypeCaller \\
 -R $ref \\
 -I $bam \\
 $interval $interval_padding\\
@@ -79,9 +80,9 @@ sh $outDir/$prefix.gvcf.sh >$outDir/$prefix.gvcf.sh.o 2>$outDir/$prefix.gvcf.sh.
 sh $outDir/$prefix.genotype.sh >$outDir/$prefix.genotype.sh.o 2>$outDir/$prefix.genotype.sh.e
 #sh $outDir/$prefix.vcf_filter.sh >$outDir/$prefix.vcf_filter.sh.o 2>$outDir/$prefix.vcf_filter.sh.e 
 
-rm -rf $outDir/split_bed
 #rm $outDir/$prefix.vcf.gz*
 SHELL
+	$shell .= "rm -rf $outDir/split_bed\n" if ($target);
 	write_shell($shell, "$outDir/$prefix.variant.sh");
 
 }
@@ -122,7 +123,7 @@ sub genotype_gvcf {
                 $groups_genotype .= "-I $outDir/$prefix.$group.vcf.gz \\\n";
                 $group_genotype_file .= "$outDir/$prefix.$group.* ";
 		$genotype_shell.=<<GenotypeGVCFs;
-$gatk --java-options -Xms8g \\
+$gatk --java-options -Xmx8g \\
 GenotypeGVCFs \\
 -R $ref \\
 -O $outDir/$prefix.$group.vcf.gz \\
