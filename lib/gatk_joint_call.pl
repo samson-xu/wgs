@@ -16,12 +16,14 @@ use FindBin qw($Bin);
 use Thread;
 
 # Global variable
-my ($help, $groupId, $outDir, $region, $reference, $dbsnp, $gatk);
+my ($help, $groupId, $outDir, $region, $reference, $dbsnp, $gatk, $plink, $king);
 $outDir = $ENV{'PWD'};;
 $region = "wgs";
 $reference = "/data/bioit/biodata/xuxy/pipeline/wgs/db/hg19.fa";
 $dbsnp ="/data/bioit/biodata/xuxy/pipeline/wgs/db/dbsnp_138.hg19.vcf.gz";
 $gatk = "/data/bioit/biodata/xuxy/pipeline/wgs/soft/gatk-4.1.8.0/gatk";
+$plink = "/data/bioit/biodata/xuxy/pipeline/wgs/soft/plink1.9/plink";
+$king = "/data/bioit/biodata/xuxy/pipeline/wgs/soft/king";
 
 # Get Parameter
 GetOptions(
@@ -32,6 +34,8 @@ GetOptions(
 	"reference=s" => \$reference,
 	"dbsnp=s" => \$dbsnp,
 	"gatk=s" => \$gatk,
+	"plink=s" => \$plink,
+	"king=s" => \$king,
 );
 
 # Guide for program
@@ -57,6 +61,8 @@ USAGE
 	--reference <s>         reference genome path, default "$reference"
 	--dbsnp <s>             dbsnp path, default "$dbsnp"
 	--gatk <s>              gatk path, default "$gatk"
+	--plink <s>             plink path, default "$plink"
+	--king <s>              king path, default "$king"
 
 INFO
 
@@ -66,6 +72,16 @@ die $guide if (@ARGV == 0 || defined $help);
 system("echo \"$indent$0 Start at:`date '+%Y/%m/%d  %H:%M:%S'`$indent\"") == 0 || die $!;
 my @files = map {"-V $_ \\"} @ARGV;
 my $input = join "\n", @files;
+# parallel sex infer
+my @mult;
+system(">$outDir/sample.sex.txt") == 0 || die $!;
+foreach (@ARGV) {
+	push @mult, threads->create(\&sex_infer, $_, $outDir);
+}
+foreach (@mult) {
+	$_->join();
+}
+
 # auto match family id
 for (my $i=0; $i<@ARGV; $i++) {
 	unless (-e "$ARGV[$i].tbi") {
@@ -93,11 +109,20 @@ $gatk --java-options -Xms6g \\
 GatherVcfs \\
 $gather_input
 -O $outDir/$groupId.vcf.gz
+
+rm -rf $outDir/*chr* $outDir/bed_split
+
+$plink --vcf $outDir/$groupId.vcf.gz --make-bed --out $outDir/$groupId.plink
+
+$king -b $outDir/$groupId.plink.bed --kinship --prefix $outDir/king
+
+mv $outDir/king.kin0 $outDir/relationShip.txt
+
+rm $outDir/$groupId.plink* $outDir/king* 
 GAS
 #print $gather_shell;
 system("$gather_shell") == 0 || die $!;
 system("echo \"$indent$0 End at:`date '+%Y/%m/%d  %H:%M:%S'`$indent\"") == 0 || die $!;
-system("rm -rf $outDir/*chr* $outDir/bed_split") == 0 || die $!;
 
 
 sub max_mutual_str {
@@ -195,4 +220,51 @@ GenotypeGVCFs \\
 GTS
 	#print $genotype_shell;
 	system("$genotype_shell") == 0 || die $!;
+}
+
+sub sex_infer {
+	my $vcf = shift;
+	my $dir = shift;
+	my (%hash, %sample_index);
+	if ($vcf =~ m/gz$/i) {
+		open VCF, "gzip -dc $vcf |" or die $!;
+	} else {
+		open VCF, $vcf or die $!;
+	}
+	while (<VCF>) {
+		next if (/^##/);
+		chomp;
+		my @arr = split /\t/;
+		if (/^#CHROM/) {
+			for (my $i=9; $i<@arr; $i++) {
+				$sample_index{$i} = $arr[$i];
+			}
+		}
+		my @alts = split /,/, $arr[4];
+		next if (@alts > 2);
+		next unless (/^chrX/i);
+		next unless (/GT:AD:DP/ or /GT:DP/);
+		foreach my $key (keys %sample_index) { 
+			my @genotype = split ":", $arr[$key];
+			if (/GT:AD:DP/) {
+				next if (!$genotype[2] or $genotype[2] < 5);
+			} else {
+				next if (!$genotype[2] or $genotype[1] < 5);
+			}
+			$hash{$sample_index{$key}}{$genotype[0]}++;
+		}
+	}
+	close VCF;
+	foreach my $key (keys %sample_index) {
+		my $het_ratio = sprintf("%.4f", $hash{$sample_index{$key}}{'0/1'}/($hash{$sample_index{$key}}{'0/0'} + $hash{$sample_index{$key}}{'1/1'}));
+		my $sex;
+		if ($het_ratio > 0.004) {
+			$sex = 'Female';
+		} else {
+			$sex = 'Male';
+		}
+		open OUT, ">>$dir/sample.sex.txt" or die $!;
+		print OUT "$sample_index{$key}\t$het_ratio\t$sex\n";
+		close OUT;
+	}
 }
