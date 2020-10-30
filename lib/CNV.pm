@@ -2,6 +2,7 @@ package CNV;
 
 use File::Basename;
 use WriteShell;
+use FindBin qw($Bin);
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -100,6 +101,8 @@ wait
 
 $cnv_soft metrics $callDir/*.cnr -s $callDir/*.cns > $callDir/sample.metrics.txt
 conda deactivate
+
+$Bin/../lib/cnv_view.pl -s --outDir $callDir $callDir/*.cnr
 
 CALL
 	write_shell($call_shell, "$callDir/cnvkit.sh");	
