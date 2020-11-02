@@ -104,6 +104,16 @@ conda deactivate
 
 $Bin/../lib/cnv_view.pl -s --outDir $callDir $callDir/*.cnr
 
+for i in \$(ls $callDir/*.cnr)
+do {
+	file=`basename \$i`
+	prefix=\${file%.cnr}
+	sampleId=\${prefix%.final}
+	cp -r $callDir/\$prefix.cnv.view $outDir/../../result/\$sampleId
+}&
+done
+wait
+
 CALL
 	write_shell($call_shell, "$callDir/cnvkit.sh");	
 	$cnv_shell .= "$callDir/cnvkit.sh >$callDir/cnvkit.sh.o 2>$callDir/cnvkit.sh.e\n";
