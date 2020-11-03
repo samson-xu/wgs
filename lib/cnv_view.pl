@@ -226,7 +226,7 @@ zscore <- cnr\$zscore
 log2ratio <- cnr\$log2
 
 # set env
-library(karyoploteR)
+suppressMessages(library(karyoploteR))
 
 pp <- getDefaultPlotParams(plot.type = 1)
 pp\$bottommargin <- 50
@@ -272,7 +272,7 @@ kpPoints(kp, chr = "$chr", x = pos, y = log2ratio, r0 = 0.35, r1 = 0.65, ymin = 
 kpAbline(kp, h = 0.3, r0 = 0.35, r1 = 0.65, col = "gray", ymin = -2, ymax = 2, lwd = 1, lty = 2)
 kpAbline(kp, h = -0.4, r0 = 0.35, r1 = 0.65, col = "gray", ymin = -2, ymax = 2, lwd = 1, lty = 2)
 
-dev.off()
+while (!is.null(dev.list()))  dev.off()
 TL
 	}
 	open RO, ">$dir/$pre.R" or die $!;
