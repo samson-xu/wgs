@@ -258,7 +258,7 @@ kpPoints(kp, chr = "$chr", x = pos, y = log2ratio, r0 = 0.35, r1 = 0.65, ymin = 
 kpAbline(kp, h = -0.4, r0 = 0.35, r1 = 0.65, col = "gray", ymin = -3, ymax = 1, lwd = 1, lty = 2)
 kpAbline(kp, h = -1.1, r0 = 0.35, r1 = 0.65, col = "gray", ymin = -3, ymax = 1, lwd = 1, lty = 2)
 
-dev.off()
+while (!is.null(dev.list()))  dev.off()
 TL
 	} else {
 	$Rscript.=<<TL;
