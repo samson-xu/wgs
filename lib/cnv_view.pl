@@ -239,11 +239,22 @@ DATA
 kpPoints(kp, chr = "$chr", x = pos, y = cn, r0 = 0.7, r1 = 1, ymin = 0, ymax = 4, col = "blue", cex = 0.4)
 CNDE
 	}
-	my $plotkt;
+	my ($plotkt, $bnarg);
 	if (defined $reg) {
 		$plotkt = "zoom = \"$reg\"";
+		my @tmp = split ":", $reg;
+		my @tmp2 = split "-", $tmp[1];
+		my $reg_len = $tmp2[1] - $tmp2[0];
+		if ($reg_len < 100000) {
+			$bnarg = "tick.dist = 10000, minor.tick.dist = 1000";
+		} elsif (100000 <= $reg_len and $reg_len < 10000000) {
+			$bnarg = "tick.dist = 1000000, minor.tick.dist = 100000";
+		} else {
+			$bnarg = "tick.dist = 10000000, minor.tick.dist = 1000000";
+		}
 	} else {
 		$plotkt = "chromosomes = \"$chr\"";
+		$bnarg = "tick.dist = 10000000, minor.tick.dist = 1000000";
 	}
 	my $Rscript=<<RS;
 # load data
@@ -264,7 +275,7 @@ pp\$data1height <- 400
 png(file="$dir/$pre.png", width = 1200, height = 800, units = "px")
 
 kp <- plotKaryotype(genome = "hg19", $plotkt, plot.type = 1, plot.params = pp, cex = 2)
-kpAddBaseNumbers(kp, tick.dist = 10000000, tick.len = 10, tick.col="red", minor.tick.dist = 1000000, minor.tick.len = 5, minor.tick.col = "gray", add.units = T, cex = 1)
+kpAddBaseNumbers(kp, $bnarg, tick.len = 10, tick.col="red", minor.tick.len = 5, minor.tick.col = "gray", add.units = T, cex = 1)
 kpAddCytobandLabels(kp, cex=1.2)
 kpDataBackground(kp, r0 = 0, r1 = 1, color = 'white')
 
