@@ -16,14 +16,15 @@ use FindBin qw($Bin);
 use Thread;
 
 # Global variable
-my ($help, $outDir, $segment);
-$outDir = $ENV{'PWD'};;
+my ($help, $outDir, $segment, $region);
+$outDir = $ENV{'PWD'};
 
 # Get Parameter
 GetOptions(
 	"h|help" => \$help, 
 	"s|segment" => \$segment,
 	"outDir=s" => \$outDir,
+	"region=s" => \$region,
 );
 
 # Guide for program
@@ -45,6 +46,7 @@ USAGE
 	--help                  print help information
 	--segment               use segmentation calls (.cns) for copy number count, the program will automatically detect in the cnr directory
 	--outDir <s>            script out Dir, default "$outDir"
+	--region <s>            define which region will be draw, IGV-like format “chr:start-end”
 
 INFO
 
@@ -52,14 +54,15 @@ die $guide if (@ARGV == 0 || defined $help);
 
 # Main
 system("echo \"$indent$0 Start at:`date '+%Y/%m/%d  %H:%M:%S'`$indent\"") == 0 || die $!;
-foreach my $file (@ARGV) {
-	my $prefix = basename($file);
+
+foreach my $cnr_file (@ARGV) {
+	my $prefix = basename($cnr_file);
 	$prefix =~ s/.cnr//;
 	my %cnr = ();
 	my %cns = ();
 	my @cn_x = ();
 	my ($cnr_head, $cns_head, $cnr_index, $cns_index);
-	open IN, $file or die $!;
+	open IN, $cnr_file or die $!;
 	while (<IN>) {
 		chomp;
 		my @arr = split;
@@ -91,17 +94,23 @@ foreach my $file (@ARGV) {
 		} else {
 			$zscore = sprintf("%.4f", $log2/sqrt(1-$arr[-1]));
 		}
+		# set edge value for log2ratio and z-score
+		$arr[$cnr_index] = -2 if ($arr[$cnr_index] < -2);
+		$arr[$cnr_index] = 2 if ($arr[$cnr_index] > 2);
+		$zscore = -3 if ($zscore < -3);
+		$zscore = 3 if ($zscore > 3);
 		if ($arr[0] =~ m/y/i) {
-			next if ($log2 < -2 or $log2 > 2);
-			next if ($zscore < -3 or $zscore > 3);
+			#next if ($log2 < -2 or $log2 > 2);
+			#next if ($zscore < -3 or $zscore > 3);
 			$cn = $cn/2;
 		}
-		$cnr{$arr[0]} .= "$_\t$cn\t$zscore\n";
+		my $cnr_line = join "\t", @arr;
+		$cnr{$arr[0]} .= "$cnr_line\t$cn\t$zscore\n";
 		push @cn_x, $cn if ($arr[0] =~ m/x/i);
 	}
 	close IN;
 	if (defined $segment) {
-		my $cns_file = $file;
+		my $cns_file = $cnr_file;
 		$cns_file =~ s/.cnr$/.cns/;
 		open SG, $cns_file or die $!;
 		while (<SG>) {
@@ -141,7 +150,7 @@ foreach my $file (@ARGV) {
 		close SG;
 	}
 	my $sex = infer_sex(@cn_x); 
-	#print "$file\t$sex\n";
+	#print "$cnr_file\t$sex\n";
 	my @threads = ();
 	foreach my $chr (sort {$a cmp $b} keys %cnr) {
 		system("mkdir -p $outDir/$prefix.cnv.view") == 0 || die $!;
@@ -155,12 +164,21 @@ foreach my $file (@ARGV) {
 		print CNS $cns{$chr}; 
 		close CNS;
 		}
-		push @threads, threads->create(\&draw_chr, "$outDir/$prefix.cnv.view/$prefix.$chr.cnr", $sex, $chr, "$outDir/$prefix.cnv.view", $segment); 
+		if ($region) {
+			$region =~ m/^([^:]*)/;
+			my $chr_region = $1; 
+			push @threads, threads->create(\&draw_chr, "$outDir/$prefix.cnv.view/$prefix.$chr.cnr", $sex, $chr, "$outDir/$prefix.cnv.view", $segment, $region) if ($chr eq $chr_region); 
+		} else {
+			push @threads, threads->create(\&draw_chr, "$outDir/$prefix.cnv.view/$prefix.$chr.cnr", $sex, $chr, "$outDir/$prefix.cnv.view", $segment, $region); 
+		}
 	}			
 	foreach (@threads) {
 		$_->join();
 	}
 }
+
+system("rm -rf $outDir/*.cnv.view/*.cnr $outDir/*.cnv.view/*.cns $outDir/*.cnv.view/*.R") == 0 || die $!;
+
 system("echo \"$indent$0 End at:`date '+%Y/%m/%d  %H:%M:%S'`$indent\"") == 0 || die $!;
 
 sub infer_sex {
@@ -187,19 +205,21 @@ sub average {
 }
 
 sub draw_chr {
-	my $file = shift;
+	my $cnr_file = shift;
 	my $sex = shift;
 	my $chr = shift;
 	my $dir = shift;
 	my $seg = shift;
-	my $pre = basename($file);
+	my $reg = shift;
+	my $pre = basename($cnr_file);
 	$pre =~ s/.cnr//;
-	my $cns_file = $file;
+	$pre .= ".$reg" if (defined $reg);
+	my $cns_file = $cnr_file;
 	$cns_file =~ s/cnr$/cns/;
 	my ($data, $cn_code);
 	if (defined $seg) {
 		$data=<<DATA;
-cnr <- read.table("$file", header = T, sep = "\t", check.names = F)
+cnr <- read.table("$cnr_file", header = T, sep = "\t", check.names = F)
 cns <- read.table("$cns_file", header = T, sep = "\t", check.names = F)
 pos <- cnr\$start
 cns_pos <- cns\$start
@@ -211,13 +231,19 @@ kpLines(kp, chr = "$chr", x = cns_pos, y = cns_cn, r0 = 0.7, r1 = 1, ymin = 0, y
 CNDE
 	} else {
 		$data=<<DATA;
-cnr <- read.table("$file", header = T, sep = "\t", check.names = F)
+cnr <- read.table("$cnr_file", header = T, sep = "\t", check.names = F)
 pos <- cnr\$start
 cn <- cnr\$cn
 DATA
 		$cn_code=<<CNDE;	
 kpPoints(kp, chr = "$chr", x = pos, y = cn, r0 = 0.7, r1 = 1, ymin = 0, ymax = 4, col = "blue", cex = 0.4)
 CNDE
+	}
+	my $plotkt;
+	if (defined $reg) {
+		$plotkt = "zoom = \"$reg\"";
+	} else {
+		$plotkt = "chromosomes = \"$chr\"";
 	}
 	my $Rscript=<<RS;
 # load data
@@ -237,8 +263,9 @@ pp\$data1height <- 400
 # draw
 png(file="$dir/$pre.png", width = 1200, height = 800, units = "px")
 
-kp <- plotKaryotype(genome = "hg19", chromosomes = "$chr", plot.type = 1, plot.params = pp, cex = 2)
-kpAddBaseNumbers(kp, add.units = T, cex = 1)
+kp <- plotKaryotype(genome = "hg19", $plotkt, plot.type = 1, plot.params = pp, cex = 2)
+kpAddBaseNumbers(kp, tick.dist = 10000000, tick.len = 10, tick.col="red", minor.tick.dist = 1000000, minor.tick.len = 5, minor.tick.col = "gray", add.units = T, cex = 1)
+kpAddCytobandLabels(kp, cex=1.2)
 kpDataBackground(kp, r0 = 0, r1 = 1, color = 'white')
 
 kpAxis(kp, r0 = 0.7, r1 = 1, ymin = 0, ymax = 4, cex = 1)
@@ -279,7 +306,5 @@ TL
 	print RO $Rscript;
 	close RO;
 	system("Rscript $dir/$pre.R") == 0 || die $!;
-	system("rm $dir/$pre.R $dir/$pre.cnr") == 0 || die $!;
-	system("rm $dir/$pre.cns") == 0 || die $! if (defined $seg);
 	return 1;
 }
