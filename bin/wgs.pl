@@ -39,7 +39,7 @@ my $step = 'cfbvnusmt';
 my $thread = '35';
 my $run = 'no';
 my $fastqc_arg = '';
-my $fastp_arg = "--detect_adapter_for_pe -q 15 -u 40 -n 10 -e 10 -l 40 -w $thread";
+my $fastp_arg = "--detect_adapter_for_pe -q 15 -u 40 -n 10 -e 10 -l 40 -w 4";
 my $clean_fastq_split = 4;
 my $align_way = 'mem';
 my $align_arg = '';
@@ -184,7 +184,9 @@ close SF;
 #print Dumper \%sampleInfo;
 my $sample_total = keys %sampleInfo;
 
-my ($step1_shell);
+$main_shell = "# Run wgs pipeline for all samples\n";
+#my ($step1_shell);
+my $batch_fastq_shell;
 
 if ($fastq_label) {
 	foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
@@ -192,10 +194,11 @@ if ($fastq_label) {
 		my $fastq = $sampleInfo{$sampleId}{'fastq'};
 		if ($step =~ /c/) {
 			my $fastqcDir = "$projectDir/$sampleId/00.fastqc";
-			my $fastqc_shell = "$config->{fastqc} -t $thread -o $fastqcDir $fastqc_arg $fastq->[0] $fastq->[1]\n";
+			my $fastqc_shell = "$config->{fastqc} -t 2 -o $fastqcDir $fastqc_arg $fastq->[0] $fastq->[1]\n";
 			$fastqc_shell .= "rm $fastqcDir/*.zip";
 			write_shell($fastqc_shell, "$fastqcDir/$sampleId.fastqc.sh");
-			$step1_shell = "sh $fastqcDir/$sampleId.fastqc.sh >$fastqcDir/$sampleId.fastqc.sh.o 2>$fastqcDir/$sampleId.fastqc.sh.e";
+			#$step1_shell = "sh $fastqcDir/$sampleId.fastqc.sh >$fastqcDir/$sampleId.fastqc.sh.o 2>$fastqcDir/$sampleId.fastqc.sh.e";
+			$batch_fastq_shell .= "sh $fastqcDir/$sampleId.fastqc.sh >$fastqcDir/$sampleId.fastqc.sh.o 2>$fastqcDir/$sampleId.fastqc.sh.e\n";
 		}
 		# Fastq filter
 		if ($step =~ /f/) {
@@ -203,9 +206,10 @@ if ($fastq_label) {
 			my $filter_shell = "$config->{fastp} -i $fastq->[0] -o $filterDir/$sampleId.clean.1.fq.gz -I $fastq->[1] -O $filterDir/$sampleId.clean.2.fq.gz $fastp_arg -j $filterDir/$sampleId.fastq.json -h $filterDir/$sampleId.fastq.html -R '$sampleId fastq report'\n";
 			$filter_shell .= "perl -I '$Bin/../lib' -MReadsStat -e \"reads_stat('$filterDir/$sampleId.fastq.json')\"\n";
 			write_shell($filter_shell, "$filterDir/$sampleId.filter.sh");
-			$wgs_shell{$sampleId} .= $step1_shell . " &\n"if ($step =~ /c/);
-			$wgs_shell{$sampleId} .= "sh $filterDir/$sampleId.filter.sh >$filterDir/$sampleId.filter.sh.o 2>$filterDir/$sampleId.filter.sh.e &\n";
-			$wgs_shell{$sampleId} .= "\nwait\n\n";
+			#$wgs_shell{$sampleId} .= $step1_shell . " &\n"if ($step =~ /c/);
+			#$wgs_shell{$sampleId} .= "sh $filterDir/$sampleId.filter.sh >$filterDir/$sampleId.filter.sh.o 2>$filterDir/$sampleId.filter.sh.e &\n";
+			$batch_fastq_shell .= "sh $filterDir/$sampleId.filter.sh >$filterDir/$sampleId.filter.sh.o 2>$filterDir/$sampleId.filter.sh.e\n";
+			#$wgs_shell{$sampleId} .= "\nwait\n\n";
 			@{$sampleInfo{$sampleId}{'clean'}} = ("$filterDir/$sampleId.clean.1.fq.gz", "$filterDir/$sampleId.clean.2.fq.gz", $clean_fastq_split);
 		}
 		# Alignment
@@ -220,6 +224,8 @@ if ($fastq_label) {
 			$sampleInfo{$sampleId}{'align'} = "$alignDir/$sampleId.final.bam"; 
 		}	
 	}
+	parallel_shell($batch_fastq_shell, "$projectDir/fastq.deal.sh", $thread, 3) if ($step =~ /c/ or $step =~ /f/);
+	$main_shell .= "sh $projectDir/fastq.deal.sh >$projectDir/fastq.deal.sh.o 2>$projectDir/fastq.deal.sh.e\n" if ($step =~ /c/ or $step =~ /f/);
 }
 
 print STDERR "Because your input is alignment result, the program will automatically skip the first few steps!\n" if (!$fastq_label and $step =~ /c|f|b/);	
@@ -278,8 +284,6 @@ if ($step =~ /n/) {
 	$cnvDir="$projectDir/$cnv_name";
 	cnvkit($cnvDir, $target_region, $thread, "$projectDir/*/02.align/*.final.bam", $config->{'hg19'}, $config->{'access'}, $config->{'cnv_filter'}, $config->{'AnnotSV'}, $cnv_db, $config->{'phenotype'}, $config->{'iconv'});
 }
-
-$main_shell = "# Run wgs pipeline for all samples\n";
 
 if ($step =~ /c|f|b|v|u|s|m/) {
 	foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
