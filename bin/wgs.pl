@@ -38,6 +38,7 @@ my $ref = $config->{'hg19'};
 my $step = 'cfbvnusmt';
 my $thread = '35';
 my $run = 'no';
+my $rm = 'yes';
 my $fastqc_arg = '';
 my $fastp_arg = "--detect_adapter_for_pe -q 15 -u 40 -n 10 -e 10 -l 40 -w 4";
 my $clean_fastq_split = 4;
@@ -84,6 +85,7 @@ $indent --workDir <str>               Work directory, default "$workDir"
 $indent --ref <str>                   Reference genome absolute path, default "$ref"
 $indent --step <str>                  Set step for run, default "$step"
 $indent --run <str>                   whether run pipeline, yes or no, default "$run"
+$indent --rm <str>                    whether rm tmp files, yes or no, default "$rm"
 $indent --thread <i>                  Set the number of threads for the program to run, default "$thread"
 $indent --stat                        Wether stat sample information, default not stat
 $parameter_separator Filter $parameter_separator 
@@ -130,6 +132,7 @@ GetOptions(
 	"step=s" => \$step,
 	"thread=i" => \$thread,
 	"run=s" => \$run,
+	"rm=s" => \$rm,
 	"stat" => \$stat,
 	"fastqc_help" => \$fastqc_help,
 	"fastqc_arg=s" => \$fastqc_arg,
@@ -219,7 +222,7 @@ if ($fastq_label) {
 			my $align_program = $config->{'mem2'};
 			$align_program = $config->{'bwa'} if ($align_way ne 'mem2');
 			reads_align($align_program, $config->{'samtools'}, $config->{'gatk'}, $thread, $sampleId, $sampleInfo{$sampleId}{'clean'},
-                        $ref, $config->{'dict'}, $config->{'dbsnp'}, $config->{'mills'}, $align_way, $align_arg, $alignDir);
+                        $ref, $config->{'dict'}, $config->{'dbsnp'}, $config->{'mills'}, $align_way, $align_arg, $alignDir, $rm);
 			$wgs_shell{$sampleId} .= "sh $alignDir/$sampleId.align.sh >$alignDir/$sampleId.align.sh.o 2>$alignDir/$sampleId.align.sh.e\n";
 			$sampleInfo{$sampleId}{'align'} = "$alignDir/$sampleId.final.bam"; 
 		}	
@@ -316,7 +319,7 @@ if ($step !~ /f/ and $step =~ /b/) {
 }
 
 $main_shell .= "sh $cnvDir/cnv.sh >$cnvDir/cnv.sh.o 2>$cnvDir/cnv.sh.e\n" if ($step =~ /n/);
-$main_shell .= "rm $projectDir/*/01.filter/*.gz\n" if ($step =~ /f/);
+$main_shell .= "rm $projectDir/*/01.filter/*.gz\n" if ($step =~ /f/ and $rm =~ m/y/i);
 
 write_shell($main_shell, "$projectDir/main.sh");
 

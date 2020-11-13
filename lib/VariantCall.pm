@@ -213,7 +213,7 @@ $gatk MergeVcfs \\
 $gatk IndexFeatureFile \\
 -I $outDir/$prefix.filter.vcf.gz
 
-rm $outDir/$prefix.snp.* $outDir/$prefix.mnp.* $outDir/$prefix.indel.*
+rm -rf $outDir/$prefix.snp.* $outDir/$prefix.mnp.* $outDir/$prefix.indel.*
 
 HardFilter
 	} else {
@@ -277,7 +277,7 @@ ApplyVQSR \\
 --create-output-variant-index true \\
 --mode SNP
 
-rm $outDir/$prefix.snp.* $outDir/$prefix.indel.*
+rm -rf $outDir/$prefix.snp.* $outDir/$prefix.indel.*
 
 VQSR
 	}

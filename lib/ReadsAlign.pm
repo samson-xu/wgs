@@ -23,6 +23,7 @@ sub reads_align {
 	my $way = shift;
 	my $arg = shift;
 	my $outDir = shift;
+	my $rm = shift;
 	my ($bwa, $merge, $mark, $bqsr, $apply, $shell, $tmp_shell);
 	my $thread_split = int($thread/$fastq->[2]);
 	my @prefix_list;
@@ -89,8 +90,8 @@ $gatk --java-options -Xmx5g MergeBamAlignment \\
 --UNMAP_CONTAMINANT_READS true \\
 --TMP_DIR $outDir
 
-rm $outDir/$out_pre.bam $outDir/$out_pre.unmapped.bam
 MergeBam
+	$merge .= "rm $outDir/$out_pre.bam $outDir/$out_pre.unmapped.bam\n" if ($rm =~ m/y/i);
 	write_shell($merge, "$outDir/$out_pre.merge.sh");
 	
 	$tmp_shell .= "sh $outDir/$out_pre.merge.sh >$outDir/$out_pre.merge.sh.o 2>$outDir/$out_pre.merge.sh.e &\n";
@@ -153,8 +154,6 @@ SortSam
 	$mark.=<<MARK;
 wait
 
-rm $outDir/*.merge.bam
-
 $samtools merge -f -1 --threads $thread $outDir/$prefix.all.bam $outDir/*.sortset.bam  
 $samtools markdup -T $outDir/$prefix --threads $thread $outDir/$prefix.all.bam $outDir/$prefix.markdup.sort.bam
 $samtools index -@ $thread $outDir/$prefix.markdup.sort.bam $outDir/$prefix.markdup.sort.bai
@@ -162,6 +161,8 @@ $samtools index -@ $thread $outDir/$prefix.markdup.sort.bam $outDir/$prefix.mark
 rm $outDir/*.fix.bam $outDir/*.sortset.bam $outDir/$prefix.all.bam
 
 MARK
+
+	$mark .= "rm $outDir/*.merge.bam\n" if ($rm =~ m/y/i);
 	write_shell($mark, "$outDir/$prefix.mark.sh");		
 
 	# Generate sets of intervals for scatter-gathering over chromosomes	
@@ -218,7 +219,7 @@ ApplyBQSR
 	}
 
 	$apply .= "wait\n\n";
-	$apply .= "rm $outDir/$prefix.markdup.sort.*\n\n";
+	$apply .= "rm $outDir/$prefix.markdup.sort.*\n\n" if ($rm =~ m/y/i);
 	$apply.=<<GatherBamFiles;
 # Combine multiple recalibrated BAM files from scattered ApplyRecalibration runs
 $gatk GatherBamFiles \\
