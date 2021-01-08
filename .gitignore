@@ -1,6 +1,4 @@
 soft/
 example/
 db/
-bin/*
-!bin/wgs.pl
-!bin/config.txt
+docker/
