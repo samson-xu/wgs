@@ -13,13 +13,14 @@ sub manta {
 	my $convertInversion = shift;
 	my $samtools = shift;
 	my $AnnotSV = shift;
+	my $svDB = shift;
 	my $bam = shift;
 	my $ref = shift;
 	my $outDir = shift;
 	my $thread = shift;
 	my $bgzip = shift;
 	my $tabix = shift;
-	my $phenotype = shift;
+	my $phenotypeDB = shift;
 	my $iconv = shift;
 	my $prefix = basename($bam);
 	$prefix =~ s/.bam$//;
@@ -50,9 +51,9 @@ $outDir/runWorkflow.py -j $thread
 
 $convertInversion $samtools $ref $outDir/results/variants/diploidSV.vcf.gz > $outDir/$prefix.sv.vcf
 
-$AnnotSV -SVminSize 10 -SVinputFile $outDir/$prefix.sv.vcf -outputFile $outDir/$prefix.sv.annot
+$AnnotSV -annotationsDir $svDB -SVminSize 10 -SVinputFile $outDir/$prefix.sv.vcf -outputFile $outDir/$prefix.sv.annot
 
-$phenotype/sv_hpo.pl $outDir/$prefix.sv.annot.tsv $phenotype/phenotype_hpo.txt $phenotype/hpo_ch_info.txt > $outDir/$prefix.sv.annot.phenotype.tsv
+$phenotypeDB/sv_hpo.pl $outDir/$prefix.sv.annot.tsv $phenotypeDB/phenotype_hpo.txt $phenotypeDB/hpo_ch_info.txt > $outDir/$prefix.sv.annot.phenotype.tsv
 
 $iconv -f utf-8 -t gb18030 $outDir/$prefix.sv.annot.phenotype.tsv > $outDir/$prefix.sv.annot.phenotype.ch.tsv
 

@@ -20,7 +20,7 @@ sub factera {
 	my $bam = shift;
 	my $interGene = shift;
 	my $bit = shift;
-	my $phenotype = shift;
+	my $phenotypeDB = shift;
 	my $iconv = shift;
 	my $region = shift;
 	my $arg = shift;
@@ -48,7 +48,7 @@ $bam \\
 $interGene \\
 $bit $region
        
-$phenotype/fusion_hpo.pl $outDir/$sampleId.final.factera.fusions.txt $phenotype/omim_gene_phenotypes.txt $phenotype/phenotype_hpo.txt $phenotype/hpo_ch_info.txt > $outDir/$sampleId.final.factera.fusions.xls
+$phenotypeDB/fusion_hpo.pl $outDir/$sampleId.final.factera.fusions.txt $phenotypeDB/omim_gene_phenotypes.txt $phenotypeDB/phenotype_hpo.txt $phenotypeDB/hpo_ch_info.txt > $outDir/$sampleId.final.factera.fusions.xls
 
 $iconv -f utf-8 -t gb18030 $outDir/$sampleId.final.factera.fusions.xls > $outDir/$sampleId.final.factera.fusions.ch.xls
        

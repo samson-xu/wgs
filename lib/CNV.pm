@@ -17,9 +17,10 @@ sub cnvkit {
 	my $ref = shift;
 	my $access = shift;
 	my $filter = shift;
-	my $annot = shift;
+	my $AnnotSV = shift;
+	my $svDB = shift;
 	my $cnv_db = shift;
-	my $phenotype = shift;
+	my $phenotypeDB = shift;
 	my $iconv = shift;
 	my $method;
 	if ($target) {
@@ -87,14 +88,14 @@ do {
 	$filter $callDir/sample.sex.txt $callDir/\$prefix.cns.call > $callDir/\$prefix.cnv.bed
 	awk '{print \$0\"\\t\"\$3-\$2}' $callDir/\$prefix.cnv.bed > $callDir/\$prefix.cnv.size
 	mkdir -p \$dir/\$prefix
-	$annot -SVinputFile $callDir/\$prefix.cnv.bed -svtBEDcol 5 -outputFile $callDir/\$prefix/\$prefix.cnv.annot
+	$AnnotSV -annotationsDir $svDB -SVinputFile $callDir/\$prefix.cnv.bed -svtBEDcol 5 -outputFile $callDir/\$prefix/\$prefix.cnv.annot
 	mv \$dir/\$prefix/*.tsv $callDir
 	rm -rf \$dir/\$prefix
 	sed -i '1s/SV length\\s*SV type/SV length\\tCopy number\\tSV type/' $callDir/\$prefix.cnv.annot.tsv
-	$phenotype/sv_hpo.pl $callDir/\$prefix.cnv.annot.tsv $phenotype/phenotype_hpo.txt $phenotype/hpo_ch_info.txt > $callDir/\$prefix.cnv.annot.phenotype.tsv
+	$phenotypeDB/sv_hpo.pl $callDir/\$prefix.cnv.annot.tsv $phenotypeDB/phenotype_hpo.txt $phenotypeDB/hpo_ch_info.txt > $callDir/\$prefix.cnv.annot.phenotype.tsv
 	$iconv -f utf-8 -t gb18030 $callDir/\$prefix.cnv.annot.phenotype.tsv > $callDir/\$prefix.cnv.annot.phenotype.ch.tsv
-	mkdir -p $outDir/../../result/\$sampleId
-	cp $callDir/\$prefix.cnv.annot.phenotype.ch.tsv $outDir/../../result/\$sampleId
+	mkdir -p $outDir/../result/\$sampleId
+	cp $callDir/\$prefix.cnv.annot.phenotype.ch.tsv $outDir/../result/\$sampleId
 }&
 done
 wait
@@ -109,7 +110,7 @@ do {
 	file=`basename \$i`
 	prefix=\${file%.cnr}
 	sampleId=\${prefix%.final}
-	cp -r $callDir/\$prefix.cnv.view $outDir/../../result/\$sampleId
+	cp -r $callDir/\$prefix.cnv.view $outDir/../result/\$sampleId
 }&
 done
 wait

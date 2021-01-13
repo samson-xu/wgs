@@ -252,7 +252,7 @@ foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 		my $fusionDir = "$projectDir/$sampleId/04.sv/fusion";
 		my $fusion_region = $config->{'dict'}; 
 		$fusion_region = $target_region if ($target_region);
-		factera($config->{'fusion'}, $fusionDir, $config->{'samtools'}, $config->{'twoBitToFa'}, $config->{'blastn'}, $config->{'makeblastdb'}, $thread, $sampleInfo{$sampleId}{'align'}, $config->{'interGene'}, $config->{'2bit'}, $config->{'phenotype'}, $config->{'iconv'}, $fusion_region, $fusion_arg, $sampleId);
+		factera($config->{'fusion'}, $fusionDir, $config->{'samtools'}, $config->{'twoBitToFa'}, $config->{'blastn'}, $config->{'makeblastdb'}, $thread, $sampleInfo{$sampleId}{'align'}, $config->{'interGene'}, $config->{'2bit'}, $config->{'phenotypeDB'}, $config->{'iconv'}, $fusion_region, $fusion_arg, $sampleId);
 		$wgs_shell{$sampleId} .= "sh $fusionDir/$sampleId.fusion.sh >$fusionDir/$sampleId.fusion.sh.o 2>$fusionDir/$sampleId.fusion.sh.e\n";
 		$sampleInfo{$sampleId}{'fusion'} = "$fusionDir/$sampleId.fusions.xls";
 	}
@@ -261,14 +261,14 @@ foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 		my $mantaDir = "$projectDir/$sampleId/04.sv/manta";
 		my $region = $config->{'dict'}; 
 		$region = $target_region if ($target_region);
-		manta($region, $config->{'manta'}, $config->{'convertInversion'}, $config->{'samtools'}, $config->{'AnnotSV'}, $sampleInfo{$sampleId}{'align'}, $config->{'hg19'}, $mantaDir, $thread, $config->{'bgzip'}, $config->{'tabix'}, $config->{'phenotype'}, $config->{'iconv'});
+		manta($region, $config->{'manta'}, $config->{'convertInversion'}, $config->{'samtools'}, $config->{'AnnotSV'}, $config->{'svDB'}, $sampleInfo{$sampleId}{'align'}, $ref, $mantaDir, $thread, $config->{'bgzip'}, $config->{'tabix'}, $config->{'phenotypeDB'}, $config->{'iconv'});
 		$wgs_shell{$sampleId} .= "sh $mantaDir/$sampleId.manta.sh >$mantaDir/$sampleId.manta.sh.o 2>$mantaDir/$sampleId.manta.sh.e\n";
 		$sampleInfo{$sampleId}{'manta'} = "$mantaDir/results/variants/diploidSV.vcf.gz"; 
 	}
 	# Mitochondrial gene mutation detection
 	if ($step =~ /m/) {
 		my $mtdnaDir = "$projectDir/$sampleId/05.mtdna";
-		mtdna($sampleInfo{$sampleId}{'align'}, $config->{'gatk'}, $config->{'bwa'}, $thread, $config->{'mtdna_annot'}, $config->{'mtdna_bin'}, $config->{'mtdna_db'}, $mtdnaDir, $config->{'convert2annovar'}, $config->{'table_annovar'});
+		mtdna($sampleInfo{$sampleId}{'align'}, $config->{'gatk'}, $config->{'bwa'}, $thread, $config->{'mtdnaDB'}, $mtdnaDir, $config->{'convert2annovar'}, $config->{'table_annovar'});
 		$wgs_shell{$sampleId} .= "bash $mtdnaDir/$sampleId.mtdna.sh >$mtdnaDir/$sampleId.mtdna.sh.o 2>$mtdnaDir/$sampleId.mtdna.sh.e\n";
 		$sampleInfo{$sampleId}{'mtdna'} = ""; 
 	}
@@ -290,7 +290,7 @@ if ($step =~ /n/) {
 		$cnv_name = 'wgs-cnv';
 	} 
 	$cnvDir="$projectDir/$cnv_name";
-	cnvkit($cnvDir, $target_region, $thread, "$projectDir/*/02.align/*.final.bam", $config->{'hg19'}, $config->{'access'}, $config->{'cnv_filter'}, $config->{'AnnotSV'}, $cnv_db, $config->{'phenotype'}, $config->{'iconv'});
+	cnvkit($cnvDir, $target_region, $thread, "$projectDir/*/02.align/*.final.bam", $ref, $config->{'access'}, $config->{'cnv_filter'}, $config->{'AnnotSV'}, $config->{'svDB'}, $cnv_db, $config->{'phenotypeDB'}, $config->{'iconv'});
 }
 
 if ($step =~ /c|f|b|v|u|s|m/) {

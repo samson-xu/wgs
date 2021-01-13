@@ -10,8 +10,9 @@ sub path_check {
 	open CON, $config_file or die $!;
 	while (<CON>) {
 		next if (/#/);		
+		next if (/^\s*$/);
 		chomp;
-		my @arr = split /\t/;
+		my @arr = split /\s+/;
 		if ($arr[1] and -e $arr[1]) {
 			$config{$arr[0]} = $arr[1];
 		} else {

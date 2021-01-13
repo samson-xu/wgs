@@ -1,45 +1,53 @@
-#File or tool path settings
-#BamQc.pm require Parallel::ForkManager module
-#insert_size_evaluate.pl require Statistics::Basic module
-#factera.pl require Statistics::Descriptive
-#cnvkit require DNAcopy R packages
+# Ruquire module
+# BamQc.pm require Parallel::ForkManager module
+# insert_size_evaluate.pl require Statistics::Basic module
+# factera.pl require Statistics::Descriptive
+# cnvkit require DNAcopy R packages
+
+
+# DB path settings
 #name	path
-hg19	/data/bioit/biodata/xuxy/pipeline/wgs/db/hg19.fa
-dict	/data/bioit/biodata/xuxy/pipeline/wgs/db/hg19.dict
-2bit	/data/bioit/biodata/xuxy/pipeline/wgs/db/hg19.2bit
-dbsnp	/data/bioit/biodata/xuxy/pipeline/wgs/db/dbsnp_138.hg19.vcf.gz
-mills	/data/bioit/biodata/xuxy/pipeline/wgs/db/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf.gz
-axiom	/data/bioit/biodata/xuxy/pipeline/wgs/db/Axiom_Exome_Plus.genotypes.all_populations.poly.vcf.gz
-hapmap	/data/bioit/biodata/xuxy/pipeline/wgs/db/hapmap_3.3.hg19.sites.vcf.gz
-omni	/data/bioit/biodata/xuxy/pipeline/wgs/db/1000G_omni2.5.hg19.sites.vcf.gz
-thousand	/data/bioit/biodata/xuxy/pipeline/wgs/db/1000G_phase1.snps.high_confidence.hg19.sites.vcf.gz
-fastqc	/data/bioit/biodata/xuxy/pipeline/wgs/soft/FastQC/fastqc
-fastp	/data/bioit/biodata/xuxy/pipeline/wgs/soft/fastp-master/fastp
-mem2	/data/bioit/biodata/xuxy/pipeline/wgs/soft/bwa-mem2-2.0_x64-linux/bwa-mem2.sse41
-bwa	/data/bioit/biodata/xuxy/pipeline/wgs/soft/bwa-0.7.17/bwa
-samtools	/data/bioit/biodata/xuxy/pipeline/wgs/soft/samtools-1.10-install/bin/samtools
-gatk	/data/bioit/biodata/xuxy/pipeline/wgs/soft/gatk-4.1.8.0/gatk
-bedtools	/data/bioit/biodata/xuxy/pipeline/wgs/soft/bedtools2-2.29.2/bin/bedtools
-twoBitToFa	/data/bioit/biodata/xuxy/pipeline/wgs/soft/fusion/twoBitToFa
-blastn	/data/bioit/biodata/xuxy/pipeline/wgs/soft/fusion/ncbi-blast-2.10.1+/bin/blastn
-makeblastdb	/data/bioit/biodata/xuxy/pipeline/wgs/soft/fusion/ncbi-blast-2.10.1+/bin/makeblastdb
-interGene	/data/bioit/biodata/xuxy/pipeline/wgs/soft/fusion/inter-gene.bed
-fusion	/data/bioit/biodata/xuxy/pipeline/wgs/lib/factera.pl
-bgzip	/data/bioit/biodata/xuxy/pipeline/wgs/soft/manta-1.6.0-install/libexec/bgzip
-tabix	/data/bioit/biodata/xuxy/pipeline/wgs/soft/manta-1.6.0-install/libexec/tabix
-manta	/data/bioit/biodata/xuxy/pipeline/wgs/soft/manta-1.6.0-install/bin/configManta.py
-convertInversion	/data/bioit/biodata/xuxy/pipeline/wgs/soft/manta-1.6.0-install/libexec/convertInversion.py
-AnnotSV	/data/bioit/biodata/xuxy/pipeline/wgs/soft/AnnotSV/bin/AnnotSV
-#conda create -n cnvkit-0.9.6 cnvkit=0.9.6
-cnv_filter	/data/bioit/biodata/xuxy/pipeline/wgs/lib/cnv_filter.v1.3.pl
-access	/data/bioit/biodata/xuxy/pipeline/wgs/soft/cnvkit/db/access-5k-mappable.hg19.bed
-#mtdna config
-mtdna_annot	/data/bioit/biodata/xuxy/pipeline/wgs/soft/mtdna/annot
-mtdna_bin	/data/bioit/biodata/xuxy/pipeline/wgs/soft/mtdna/bin
-mtdna_db	/data/bioit/biodata/xuxy/pipeline/wgs/soft/mtdna/db
-#annovar
-convert2annovar	/data/bioit/biodata/xuxy/pipeline/wgs/soft/annovar/convert2annovar.pl
-table_annovar	/data/bioit/biodata/xuxy/pipeline/wgs/soft/annovar/table_annovar.pl
-phenotype	/data/bioit/biodata/xuxy/pipeline/wgs/db/phenotype
+hg19	/db/genome/index/hg19.fa
+dict	/db/genome/hg19.dict
+2bit	/db/genome/hg19.2bit
+dbsnp	/db/gatk/dbsnp_138.hg19.vcf.gz
+mills	/db/gatk/Mills_and_1000G_gold_standard.indels.hg19.sites.vcf.gz
+axiom	/db/gatk/Axiom_Exome_Plus.genotypes.all_populations.poly.vcf.gz
+hapmap	/db/gatk/hapmap_3.3.hg19.sites.vcf.gz
+omni	/db/gatk/1000G_omni2.5.hg19.sites.vcf.gz
+thousand	/db/gatk/1000G_phase1.snps.high_confidence.hg19.sites.vcf.gz
+svDB	/db/AnnotSV
+annovarDB	/db/annovar
+interGene	/db/sv/inter-gene.bed
+access	/db/sv/access-5k-mappable.hg19.bed
+mtdnaDB	/db/mtdna
+phenotypeDB	/db/phenotype
+
+
+# Soft path settings
+#name   path
+fastqc	/usr/local/bin/fastqc
+fastp	/usr/local/bin/fastp
+mem2	/usr/local/bin/bwa-mem2
+bwa	/usr/local/bin/bwa
+samtools	/usr/local/bin/samtools
+gatk	/usr/local/bin/gatk
+bedtools	/usr/local/bin/bedtools
+twoBitToFa	/usr/local/bin/twoBitToFa
+blastn	/usr/local/bin/blastn
+makeblastdb	/usr/local/bin/makeblastdb
+fusion	/wgs/lib/factera.pl
+bgzip	/usr/local/bin/bgzip
+tabix	/usr/local/bin/tabix
+manta	/usr/local/bin/configManta.py
+convertInversion	/usr/local/libexec/convertInversion.py
+AnnotSV	/usr/local/bin/AnnotSV
 iconv	/usr/bin/iconv
 gtz	/usr/local/bin/gtz
+
+#conda create -n cnvkit-0.9.6 cnvkit=0.9.6
+cnv_filter	/wgs/lib/cnv_filter.v1.3.pl
+
+#annovar
+convert2annovar	/wgs/soft/annovar/convert2annovar.pl
+table_annovar	/wgs/soft/annovar/table_annovar.pl

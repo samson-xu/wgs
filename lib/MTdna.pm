@@ -14,19 +14,17 @@ sub mtdna {
 	my $gatk = shift;
 	my $bwa = shift;
 	my $thread = shift;
-	my $annotDir = shift;
-	my $binDir = shift;
-	my $dbDir = shift;
+	my $mtdnaDB = shift;
 	my $outDir = shift;
 	my $convert2annovar = shift;
 	my $table_annovar = shift;
 	my $prefix = basename($bam);
 	$prefix =~ s/.bam$//;
 	$prefix =~ s/.final$//;
-	my $mt_align = align("$outDir/$prefix.chrM.unmapped.bam", $gatk, $bwa, $outDir, $thread, "$dbDir/Homo_sapiens_assembly38.chrM.fasta", "normal");
-	my $shift_align = align("$outDir/$prefix.chrM.unmapped.bam", $gatk, $bwa, $outDir, $thread, "$dbDir/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta", "shift");
-	my $mt_call = mutect2("$outDir/$prefix.chrM.normal.bam", $gatk, "$dbDir/Homo_sapiens_assembly38.chrM.fasta", $outDir, "-L chrM:576-16024");
-	my $shift_call = mutect2("$outDir/$prefix.chrM.shift.bam", $gatk, "$dbDir/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta", $outDir, "-L chrM:8025-9144");
+	my $mt_align = align("$outDir/$prefix.chrM.unmapped.bam", $gatk, $bwa, $outDir, $thread, "$mtdnaDB/Homo_sapiens_assembly38.chrM.fasta", "normal");
+	my $shift_align = align("$outDir/$prefix.chrM.unmapped.bam", $gatk, $bwa, $outDir, $thread, "$mtdnaDB/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta", "shift");
+	my $mt_call = mutect2("$outDir/$prefix.chrM.normal.bam", $gatk, "$mtdnaDB/Homo_sapiens_assembly38.chrM.fasta", $outDir, "-L chrM:576-16024");
+	my $shift_call = mutect2("$outDir/$prefix.chrM.shift.bam", $gatk, "$mtdnaDB/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta", $outDir, "-L chrM:8025-9144");
 	my $mtdna_shell=<<MT;
 # Workflow for SNP and INDEL variant calling on mitochondria
 # Subsets a whole genome bam to just Mitochondria reads
@@ -64,7 +62,7 @@ rm $outDir/$prefix.chrM.unmapped.bam  $outDir/$prefix.chrM.*.merge.bam $outDir/$
 #CollectWgsMetrics \\
 #--INPUT $outDir/$prefix.chrM.normal.bam \\
 #--VALIDATION_STRINGENCY SILENT \\
-#--REFERENCE_SEQUENCE $dbDir/Homo_sapiens_assembly38.chrM.fasta \\
+#--REFERENCE_SEQUENCE $mtdnaDB/Homo_sapiens_assembly38.chrM.fasta \\
 #--OUTPUT $outDir/metrics.txt \\
 #--USE_FAST_ALGORITHM true \\
 #--READ_LENGTH 151 \\
@@ -78,9 +76,9 @@ rm $outDir/$prefix.chrM.unmapped.bam  $outDir/$prefix.chrM.*.merge.bam $outDir/$
 #CODE
 
 #Uses Haplochecker to estimate levels of contamination in mitochondria
-java -jar $binDir/mitolib-0.1.2.jar haplochecker \\
+java -jar $mtdnaDB/annot/mitolib-0.1.2.jar haplochecker \\
 --in $outDir/$prefix.chrM.normal.bam \\
---ref $dbDir/Homo_sapiens_assembly38.chrM.fasta \\
+--ref $mtdnaDB/Homo_sapiens_assembly38.chrM.fasta \\
 --out $outDir/haplochecker_out \\
 --QUAL 20 \\
 --MAPQ 30 \\
@@ -111,8 +109,8 @@ rm $outDir/*.log
 $gatk LiftoverVcf \\
 -I $outDir/$prefix.chrM.shift.vcf \\
 -O $outDir/$prefix.chrM.shifted_back.vcf \\
--R $dbDir/Homo_sapiens_assembly38.chrM.fasta \\
---CHAIN $dbDir/ShiftBack.chain \\
+-R $mtdnaDB/Homo_sapiens_assembly38.chrM.fasta \\
+--CHAIN $mtdnaDB/ShiftBack.chain \\
 --REJECT $outDir/$prefix.chrM.rejected.vcf
 
 $gatk MergeVcfs \\
@@ -131,7 +129,7 @@ contamination=`awk '{print \$8}' $outDir/haplochecker_out/$prefix.chrM.normal.co
 $gatk --java-options -Xmx2500m \\
 FilterMutectCalls \\
 -V $outDir/$prefix.chrM.merge.vcf \\
--R $dbDir/Homo_sapiens_assembly38.chrM.fasta \\
+-R $mtdnaDB/Homo_sapiens_assembly38.chrM.fasta \\
 -O $outDir/$prefix.chrM.merge.filtered.vcf \\
 --stats $outDir/$prefix.chrM.raw.combined.stats \\
 --max-alt-allele-count 4 \\
@@ -140,7 +138,7 @@ FilterMutectCalls \\
 
 $gatk VariantFiltration -V $outDir/$prefix.chrM.merge.filtered.vcf \\
 -O $outDir/$prefix.chrM.final.vcf \\
---mask $dbDir/blacklist_sites.hg38.chrM.bed \\
+--mask $mtdnaDB/blacklist_sites.hg38.chrM.bed \\
 --mask-name "blacklisted_site"
 
 rm $outDir/$prefix.chrM.merge.* $outDir/$prefix.chrM.shift* $outDir/$prefix.chrM.normal*vcf* $outDir/*.stats
@@ -149,8 +147,8 @@ rm -rf haplochecker_out/
 # Annotation for SNP and INDEL variant on mitochondria
 grep -v "#" $outDir/$prefix.chrM.final.vcf | grep -v -E 'blacklisted_site|weak_evidence' > $outDir/$prefix.chrM.final.filter.vcf
 $convert2annovar --format vcf4 $outDir/$prefix.chrM.final.filter.vcf > $outDir/$prefix.chrM.final.filter.av
-$table_annovar --buildver hg19 --remove --protocol ensGene,mitomap20190903,mitimpact3 --operation g,f,f --nastring . $outDir/$prefix.chrM.final.filter.av $annotDir --outfile $outDir/$prefix.chrM.final
-$binDir/add_AF.pl $outDir/$prefix.chrM.final.filter.vcf $outDir/$prefix.chrM.final.hg19_multianno.txt > $outDir/$prefix.chrM.final.result.xls
+$table_annovar --buildver hg19 --remove --protocol ensGene,mitomap20190903,mitimpact3 --operation g,f,f --nastring . $outDir/$prefix.chrM.final.filter.av $mtdnaDB/annot/ --outfile $outDir/$prefix.chrM.final
+$mtdnaDB/annot/add_AF.pl $outDir/$prefix.chrM.final.filter.vcf $outDir/$prefix.chrM.final.hg19_multianno.txt > $outDir/$prefix.chrM.final.result.xls
 rm $outDir/$prefix.chrM.final.filter.vcf $outDir/$prefix.chrM.final.filter.av $outDir/$prefix.chrM.final.hg19_multianno.txt
 rm -rf $outDir/haplochecker_out
 MT
