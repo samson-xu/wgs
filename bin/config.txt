@@ -42,3 +42,4 @@ convert2annovar	/data/bioit/biodata/xuxy/pipeline/wgs/soft/annovar/convert2annov
 table_annovar	/data/bioit/biodata/xuxy/pipeline/wgs/soft/annovar/table_annovar.pl
 phenotype	/data/bioit/biodata/xuxy/pipeline/wgs/db/phenotype
 iconv	/usr/bin/iconv
+gtz	/usr/local/bin/gtz

@@ -39,6 +39,7 @@ my $step = 'cfbvnusmt';
 my $thread = '35';
 my $run = 'no';
 my $rm = 'yes';
+my $compress = 'yes';
 my $fastqc_arg = '';
 my $fastp_arg = "--detect_adapter_for_pe -q 15 -u 40 -n 10 -e 10 -l 40 -w 4";
 my $clean_fastq_split = 4;
@@ -86,6 +87,7 @@ $indent --ref <str>                   Reference genome absolute path, default "$
 $indent --step <str>                  Set step for run, default "$step"
 $indent --run <str>                   whether run pipeline, yes or no, default "$run"
 $indent --rm <str>                    whether rm tmp files, yes or no, default "$rm"
+$indent --compress <str>              whether compress result files, yes or no, default "$compress"
 $indent --thread <i>                  Set the number of threads for the program to run, default "$thread"
 $indent --stat                        Wether stat sample information, default not stat
 $parameter_separator Filter $parameter_separator 
@@ -95,7 +97,7 @@ $indent --fastp_help                  Print fastp help information
 $indent --fastp_arg <str>             Fastp argument setting, default "$fastp_arg"
 $indent --clean_fastq_split <i>       Specifies how many parts the output fastq is divided into, default "$clean_fastq_split"
 $parameter_separator Align $parameter_separator 
-$indent --align_way <str>             Select align algorithm, 'backtrack', 'mem' or 'mem2', default "$align_way"
+$indent --align_way <str>             Select align algorithm, 'backtrack', 'mem' or 'mem2', change ref according to align way, default "$align_way"
 $indent --backtrack_help              Print BWA-backtrack help information
 $indent --mem_help                    Print BWA-mem help information
 $indent --mem2_help                   Print BWA-mem2 help information
@@ -113,6 +115,7 @@ $indent 1. Fastq quality system should be phred 33
 $indent 2. If input is fastq, sample.lst format like: SampleId    fq1    fq2, if input is bam, sample.lst format like: SampleId    bam
 $indent 3. If you specify a target it will run as the WES, otherwise it will run the WGS
 $indent 4. If you are in WGS mode, you may not be able to detect the gene fusion because that would take a long time
+$indent 5. You should change ref according to align way, mem and mem2 have different ref
 
 EXAMPLE
 $indent WES: $0 --target_region Agilent_V6.bed --step cfbvnusmt --run y --clean_fastq_split 4 sample.lst
@@ -133,6 +136,7 @@ GetOptions(
 	"thread=i" => \$thread,
 	"run=s" => \$run,
 	"rm=s" => \$rm,
+	"compress=s" => \$compress,
 	"stat" => \$stat,
 	"fastqc_help" => \$fastqc_help,
 	"fastqc_arg=s" => \$fastqc_arg,
@@ -164,7 +168,7 @@ die $guide if (@ARGV == 0 || defined $help);
 $fastp_arg .= " --split $clean_fastq_split -d 3" if ($clean_fastq_split and $clean_fastq_split >=2);
 
 # Main
-$project = ".$project" if ($project !~ m/^\./);
+#$project = ".$project" if ($project !~ m/^\./);
 my $projectDir = "$workDir/$project";
 my $sample_file = shift;
 system("mkdir -p $projectDir") == 0 || die $!;
@@ -270,10 +274,11 @@ foreach my $sampleId (sort {$a cmp $b} keys %sampleInfo) {
 	}
 	# Statistics of variation detection results
 	if ($step =~ /t/) {
-		my $resultDir = "$workDir/result/$sampleId";
+		my $resultDir = "$projectDir/result/$sampleId";
 		copy("$projectDir/$sampleId", $resultDir, $step, $sampleId);
 		$wgs_shell{$sampleId} .= "sh $projectDir/$sampleId/$sampleId.summary.sh >$projectDir/$sampleId/$sampleId.summary.sh.o 2>$projectDir/$sampleId/$sampleId.summary.sh.e\n";
 	}
+	$wgs_shell{$sampleId} .= "$config->{'gtz'} --ref $ref --donot-pack-ref -o $projectDir/$sampleId/02.align/$sampleId.final.bam.gtz -e $projectDir/$sampleId/02.align/$sampleId.final.bam\n" if ($compress =~ m/y/i);
 }
 
 # CNV detection
@@ -309,13 +314,13 @@ PSBM
 
 if ($step =~ /f/ and $step =~ /b/) {
 	$main_shell .= "cat $projectDir/sample.fq.stat.xls $projectDir/sample.bam.stat.xls | sed '7d' | sed '8,10d'> $projectDir/sample.stat.xls\n";
-	$main_shell .= "cp $projectDir/sample.stat.xls $workDir/result\n";
-	$main_shell .= "$Bin/../lib/qc_format.pl $workDir/result/sample.stat.xls > $workDir/result/sample.stat.report.xls\n" if ($target_region);
+	$main_shell .= "cp $projectDir/sample.stat.xls $projectDir/result\n";
+	$main_shell .= "$Bin/../lib/qc_format.pl $projectDir/result/sample.stat.xls > $projectDir/result/sample.stat.report.xls\n" if ($target_region);
 }
 
 if ($step !~ /f/ and $step =~ /b/) {
-	$main_shell .= "cp $projectDir/sample.bam.stat.xls $workDir/result\n";
-	$main_shell .= "$Bin/../lib/qc_format.pl $workDir/result/sample.stat.xls > $workDir/result/sample.stat.report.xls\n" if ($target_region);
+	$main_shell .= "cp $projectDir/sample.bam.stat.xls $projectDir/result\n";
+	$main_shell .= "$Bin/../lib/qc_format.pl $projectDir/result/sample.stat.xls > $projectDir/result/sample.stat.report.xls\n" if ($target_region);
 }
 
 $main_shell .= "sh $cnvDir/cnv.sh >$cnvDir/cnv.sh.o 2>$cnvDir/cnv.sh.e\n" if ($step =~ /n/);
