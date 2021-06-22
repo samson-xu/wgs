@@ -141,16 +141,15 @@ $gatk VariantFiltration -V $outDir/$prefix.chrM.merge.filtered.vcf \\
 --mask $mtdnaDB/blacklist_sites.hg38.chrM.bed \\
 --mask-name "blacklisted_site"
 
-rm $outDir/$prefix.chrM.merge.* $outDir/$prefix.chrM.shift* $outDir/$prefix.chrM.normal*vcf* $outDir/*.stats
-rm -rf haplochecker_out/
+rm $outDir/$prefix.chrM.merge.* $outDir/$prefix.chrM.shift* $outDir/$prefix.chrM.normal*vcf* $outDir/*combined.stats
+rm -rf $outDir/haplochecker_out
 
 # Annotation for SNP and INDEL variant on mitochondria
 grep -v "#" $outDir/$prefix.chrM.final.vcf | grep -v -E 'blacklisted_site|weak_evidence' > $outDir/$prefix.chrM.final.filter.vcf
 $convert2annovar --format vcf4 $outDir/$prefix.chrM.final.filter.vcf > $outDir/$prefix.chrM.final.filter.av
-$table_annovar --buildver hg19 --remove --protocol ensGene,mitomap20190903,mitimpact3 --operation g,f,f --nastring . $outDir/$prefix.chrM.final.filter.av $mtdnaDB/annot/ --outfile $outDir/$prefix.chrM.final
+$table_annovar --buildver hg19 --remove --protocol ensGene,mitomap20190903,mitimpact3 --operation g,f,f --nastring . --polish --outfile $outDir/$prefix.chrM.final $outDir/$prefix.chrM.final.filter.av $mtdnaDB/annot/ 
 $mtdnaDB/annot/add_AF.pl $outDir/$prefix.chrM.final.filter.vcf $outDir/$prefix.chrM.final.hg19_multianno.txt > $outDir/$prefix.chrM.final.result.xls
-rm $outDir/$prefix.chrM.final.filter.vcf $outDir/$prefix.chrM.final.filter.av $outDir/$prefix.chrM.final.hg19_multianno.txt
-rm -rf $outDir/haplochecker_out
+rm $outDir/$prefix.chrM.final.filter.vcf $outDir/$prefix.chrM.final.filter.av $outDir/$prefix.chrM.final.hg19_multianno.txt $outDir/$prefix.chrM.normal*  $outDir/$prefix.chrM.rejected.vcf
 MT
 
 	write_shell($mtdna_shell, "$outDir/$prefix.mtdna.sh");
